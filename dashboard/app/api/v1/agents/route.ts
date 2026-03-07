@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { validateApiKey } from '@/lib/api/auth';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/v1/agents — list all agents
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { valid, error } = await validateApiKey(request.headers.get('authorization'));
     if (!valid) return NextResponse.json({ error }, { status: 401 });
 

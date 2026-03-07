@@ -67,10 +67,10 @@ function getTodayString(date?: string) {
     return new Date().toISOString().split('T')[0];
 }
 
-export async function generateDailyMissions(date?: string) {
+export async function generateDailyMissions(userId: string, date?: string) {
     const today = getTodayString(date);
 
-    const { data: existingMissions } = await db.from('daily_missions').select('*').eq('date', today);
+    const { data: existingMissions } = await db.from('daily_missions').select('*').eq('user_id', userId).eq('date', today);
     if (existingMissions && existingMissions.length > 0) {
         return existingMissions;
     }
@@ -81,6 +81,7 @@ export async function generateDailyMissions(date?: string) {
 
     const newMissions = selected.map(template => ({
         id: uuidv4(),
+        user_id: userId,
         date: today,
         title: template.titleTemplate.replace('{target}', String(template.baseTarget)),
         description: '',
@@ -96,7 +97,7 @@ export async function generateDailyMissions(date?: string) {
     return newMissions;
 }
 
-export async function checkMissionCompletion(missionId: string) {
+export async function checkMissionCompletion(missionId: string, userId: string) {
     const { data: mission } = await db.from('daily_missions').select('*').eq('id', missionId).single();
     if (!mission || mission.is_completed) return;
 
@@ -104,35 +105,36 @@ export async function checkMissionCompletion(missionId: string) {
         await db.from('daily_missions').update({
             is_completed: true,
             completed_at: new Date().toISOString(),
-        }).eq('id', missionId);
+        }).eq('id', missionId).eq('user_id', userId);
 
         // Award global XP
-        await awardXP('agent-zero', mission.xp_reward, 'mission_completed', mission.id);
+        await awardXP('agent-zero', userId, mission.xp_reward, 'mission_completed', mission.id);
 
         // Check if all missions for today are complete
         const today = mission.date;
-        const { data: allToday } = await db.from('daily_missions').select('*').eq('date', today);
+        const { data: allToday } = await db.from('daily_missions').select('*').eq('user_id', userId).eq('date', today);
         if (allToday && allToday.every((m: any) => m.is_completed || m.id === missionId)) {
-            await awardXP('agent-zero', 75, 'all_missions_completed');
+            await awardXP('agent-zero', userId, 75, 'all_missions_completed');
         }
 
-        await checkAllAchievements();
+        await checkAllAchievements(userId);
     }
 }
 
-export async function updateMissionProgress(type: string, increment: number) {
+export async function updateMissionProgress(type: string, increment: number, userId: string) {
     const today = getTodayString();
     const { data: missions } = await db.from('daily_missions')
         .select('*')
+        .eq('user_id', userId)
         .eq('date', today)
         .eq('type', type)
         .eq('is_completed', false);
 
     for (const mission of (missions || [])) {
         const newCurrent = mission.current + increment;
-        await db.from('daily_missions').update({ current: newCurrent }).eq('id', mission.id);
+        await db.from('daily_missions').update({ current: newCurrent }).eq('id', mission.id).eq('user_id', userId);
         if (newCurrent >= mission.target) {
-            await checkMissionCompletion(mission.id);
+            await checkMissionCompletion(mission.id, userId);
         }
     }
 }

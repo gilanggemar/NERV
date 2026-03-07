@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { TaskCard } from './TaskCard';
 import { useTaskStore, type Task } from '@/lib/useTaskStore';
 import { useSchedulerStore } from '@/store/useSchedulerStore';
-import { useSocketStore } from '@/lib/useSocket';
+import { useAvailableAgents } from '@/hooks/useAvailableAgents';
 
 // ─── Agent color helper ─────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ function getAgentColor(agentId: string): string {
 // ─── Draggable task wrapper ─────────────────────────────────────────────────
 
 function DraggableTrayTask({ task }: { task: Task }) {
-    const agents = useSocketStore((s) => s.agents);
+    const agents = useAvailableAgents();
     const agent = agents.find((a: any) => a.id === task.agentId);
 
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

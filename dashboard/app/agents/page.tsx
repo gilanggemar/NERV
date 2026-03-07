@@ -1,60 +1,37 @@
 "use client";
 
-import { useMemo } from "react";
 import { useSocketStore } from "@/lib/useSocket";
-import { AGENT_ROSTER } from "@/lib/agentRoster";
+import { useConnectionStore } from "@/store/useConnectionStore";
 import { AgentCard } from "@/components/AgentCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plug2 } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function AgentsPage() {
     const { agents: socketAgents } = useSocketStore();
+    const { activeProfile } = useConnectionStore();
 
-    // Merge: AGENT_ROSTER as baseline, enriched with live socket data
-    const mergedAgents = useMemo(() => {
-        const result: any[] = [];
-
-        // 1. Start with all roster agents
-        for (const roster of AGENT_ROSTER) {
-            // Try to find a matching socket agent by ID
-            const socketMatch = socketAgents.find(
-                (s: any) => s.id === roster.id || s.id === roster.codename?.toLowerCase()
-            );
-
-            if (socketMatch) {
-                // Merge: socket data takes priority for live fields, roster for profile fields
-                result.push({
-                    ...socketMatch,
-                    name: roster.name, // Use roster's display name
-                    rosterProfile: roster, // Pass full profile for color/role/etc
-                });
-            } else {
-                // No socket connection — show as offline with roster data
-                result.push({
-                    id: roster.id,
-                    name: roster.name,
-                    status: 'offline',
-                    running: false,
-                    connected: false,
-                    configured: true,
-                    rosterProfile: roster,
-                });
-            }
+    // Inject Agent Zero into the roster if it's enabled in the active connection profile
+    const availableAgents = [...socketAgents];
+    if (activeProfile?.agentZeroEnabled) {
+        if (!availableAgents.find(a => a.id === 'agent-zero')) {
+            availableAgents.push({
+                id: 'agent-zero',
+                name: 'Zero',
+                status: 'idle',
+                channel: 'system',
+                accountId: 'agent-zero',
+                configured: true,
+                running: true,
+                connected: true,
+                linked: true,
+                probeOk: true,
+            });
         }
+    }
 
-        // 2. Add any socket agents NOT in the roster (e.g. external integrations)
-        for (const socketAgent of socketAgents) {
-            const alreadyMerged = result.some((r: any) =>
-                r.id === socketAgent.id
-            );
-            if (!alreadyMerged) {
-                result.push(socketAgent);
-            }
-        }
-
-        return result;
-    }, [socketAgents]);
-
-    const onlineCount = mergedAgents.filter(
+    const onlineCount = availableAgents.filter(
         (a: any) => a.running || a.probeOk || a.connected
     ).length;
 
@@ -65,20 +42,36 @@ export default function AgentsPage() {
                 <div className="flex items-center gap-3">
                     <h1 className="text-xl font-semibold tracking-tight text-foreground">Agents</h1>
                     <span className="text-xs text-muted-foreground">
-                        {onlineCount} online · {mergedAgents.length} total
+                        {onlineCount} online · {availableAgents.length} total
                     </span>
                 </div>
             </div>
 
-            <ScrollArea className="flex-1 pr-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 items-start gap-6 pb-4">
-                    {mergedAgents.map((agent: any) => (
-                        <div key={agent.id}>
-                            <AgentCard agent={agent} />
-                        </div>
-                    ))}
+            {availableAgents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center flex-1 pb-20 border border-dashed rounded-3xl border-white/5 bg-foreground/5">
+                    <div className="text-5xl mb-6 opacity-80">👻</div>
+                    <h3 className="text-xl font-semibold tracking-tight text-foreground mb-2">No Agents Connected</h3>
+                    <p className="text-muted-foreground text-center max-w-sm mb-6 text-sm">
+                        It looks like your roster is empty. Please connect an external engine in your Console settings to wake up your agents.
+                    </p>
+                    <Link href="/settings/bridges">
+                        <Button variant="secondary" className="gap-2 rounded-full px-6">
+                            <Plug2 className="size-4" />
+                            Connect Engine
+                        </Button>
+                    </Link>
                 </div>
-            </ScrollArea>
+            ) : (
+                <ScrollArea className="flex-1 pr-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 items-start gap-6 pb-4">
+                        {availableAgents.map((agent: any) => (
+                            <div key={agent.id}>
+                                <AgentCard agent={agent} />
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+            )}
         </div>
     );
 }

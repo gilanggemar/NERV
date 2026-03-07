@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
+import { getAuthUserId } from '@/lib/auth';
 
 // Simple encryption using AES-256-GCM
 // In production, use a proper key management system
@@ -40,6 +41,10 @@ function decrypt(encryptedText: string): string {
 
 // GET /api/settings/secrets?service=<service>&key=<key>
 export async function GET(req: NextRequest) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(req.url);
         const service = searchParams.get('service');
@@ -56,7 +61,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Return specific secret
-        let query = db.from('connection_secrets').select('*').eq('service', service);
+        let query = db.from('connection_secrets').select('*').eq('user_id', userId).eq('service', service);
         if (key) query = query.eq('key', key);
 
         const { data: results, error } = await query;
@@ -89,6 +94,10 @@ export async function GET(req: NextRequest) {
 // POST /api/settings/secrets
 // Body: { service: string, key: string, value: string }
 export async function POST(req: NextRequest) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await req.json();
         const { service, key, value } = body;
@@ -124,6 +133,7 @@ export async function POST(req: NextRequest) {
         // Create new secret
         const id = crypto.randomUUID();
         await db.from('connection_secrets').insert({
+            user_id: userId,
             id,
             service,
             key,
@@ -145,6 +155,10 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/settings/secrets?service=<service>&key=<key>
 export async function DELETE(req: NextRequest) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(req.url);
         const service = searchParams.get('service');

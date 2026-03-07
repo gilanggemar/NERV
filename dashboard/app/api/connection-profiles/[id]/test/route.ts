@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
+import { getAuthUserId } from '@/lib/auth';
 
 interface TestResult {
     openclaw: {
@@ -23,8 +24,12 @@ export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
-    const { data: profile, error } = await db.from('connection_profiles').select('*').eq('id', id).single();
+    const { data: profile, error } = await db.from('connection_profiles').select('*').eq('user_id', userId).eq('id', id).single();
     if (error || !profile) {
         return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
@@ -117,7 +122,7 @@ export async function POST(
         last_connected_at: new Date().toISOString(),
         last_health_status: healthStatus,
         updated_at: new Date().toISOString(),
-    }).eq('id', id);
+    }).eq('user_id', userId).eq('id', id);
 
     return NextResponse.json(result);
 }

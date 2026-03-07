@@ -3,25 +3,27 @@ import { ACHIEVEMENT_DEFINITIONS } from './achievementChecker';
 import { AGENT_ROSTER } from '../agentRoster';
 import { calculateLevel } from './xpEngine';
 
-export async function seedGamification() {
+export async function seedGamification(userId: string) {
     console.log('--- GAMIFICATION SEED CHECK ---');
     try {
         // 1. Seed Achievements
-        const { data: existingAchievements } = await db.from('achievements').select('id');
+        const { data: existingAchievements } = await db.from('achievements').select('id').eq('user_id', userId).limit(1);
         if (!existingAchievements || existingAchievements.length === 0) {
             console.log('Seeding achievements...');
-            await db.from('achievements').insert(ACHIEVEMENT_DEFINITIONS);
+            const toInsert = ACHIEVEMENT_DEFINITIONS.map(a => ({ ...a, user_id: userId }));
+            await db.from('achievements').insert(toInsert);
         } else {
             console.log('Achievements already seeded.');
         }
 
         // 2. Initialize Agent XP
         for (const agent of AGENT_ROSTER) {
-            const { data: existingXp } = await db.from('agent_xp').select('agent_id').eq('agent_id', agent.id).single();
+            const { data: existingXp } = await db.from('agent_xp').select('agent_id').eq('user_id', userId).eq('agent_id', agent.id).single();
             if (!existingXp) {
                 console.log(`Initializing XP for agent ${agent.id}...`);
                 const { level, xpToNextLevel, rank } = calculateLevel(0);
                 await db.from('agent_xp').insert({
+                    user_id: userId,
                     agent_id: agent.id,
                     total_xp: 0,
                     level,
@@ -33,10 +35,11 @@ export async function seedGamification() {
         }
 
         // 3. Initialize Operations Streak singleton
-        const { data: existingStreak } = await db.from('operations_streak').select('id').limit(1);
+        const { data: existingStreak } = await db.from('operations_streak').select('id').eq('user_id', userId).limit(1);
         if (!existingStreak || existingStreak.length === 0) {
             console.log('Initializing operations streak...');
             await db.from('operations_streak').insert({
+                user_id: userId,
                 current_streak: 0,
                 longest_streak: 0,
                 last_active_date: null,

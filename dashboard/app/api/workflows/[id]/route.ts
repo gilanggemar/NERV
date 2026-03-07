@@ -1,14 +1,19 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/workflows/[id]
 export async function GET(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
-        const { data: row, error } = await db.from('workflows').select('*').eq('id', id).single();
+        const { data: row, error } = await db.from('workflows').select('*').eq('user_id', userId).eq('id', id).single();
         if (error || !row) return NextResponse.json({ error: 'Not found' }, { status: 404 });
         // steps and schedule are already parsed (jsonb)
         return NextResponse.json(row);
@@ -23,6 +28,10 @@ export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
         const body = await request.json();
@@ -47,11 +56,15 @@ export async function DELETE(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
         // Cascade should handle runs, but be explicit
-        await db.from('workflow_runs').delete().eq('workflow_id', id);
-        await db.from('workflows').delete().eq('id', id);
+        await db.from('workflow_runs').delete().eq('user_id', userId).eq('workflow_id', id);
+        await db.from('workflows').delete().eq('user_id', userId).eq('id', id);
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         console.error('Failed to delete workflow:', error);

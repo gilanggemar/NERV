@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/memory/conversations — list conversations, optionally by agentId
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const agentId = searchParams.get('agentId');
 
-        let query = db.from('conversations').select('*').order('updated_at', { ascending: false });
+        let query = db.from('conversations').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
         if (agentId) query = query.eq('agent_id', agentId);
 
         const { data: rows, error } = await query;
@@ -21,6 +26,10 @@ export async function GET(request: Request) {
 
 // POST /api/memory/conversations — create a new conversation
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { agentId, title } = body;
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
 
         const id = crypto.randomUUID();
 
-        const { data, error } = await db.from('conversations').insert({
+        const { data, error } = await db.from('conversations').insert({ user_id: userId,
             id,
             agent_id: agentId,
             title,

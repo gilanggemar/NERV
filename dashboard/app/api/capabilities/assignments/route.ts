@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/capabilities/assignments - List assignments with required filter
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const agentId = searchParams.get('agent_id');
@@ -16,7 +21,7 @@ export async function GET(request: Request) {
             );
         }
 
-        let query = db.from('agent_capability_assignments').select('*');
+        let query = db.from('agent_capability_assignments').select('*').eq('user_id', userId);
 
         if (agentId) {
             query = query.eq('agent_id', agentId);
@@ -45,6 +50,10 @@ export async function GET(request: Request) {
 
 // POST /api/capabilities/assignments - Create assignment
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { agent_id, capability_type, capability_id } = body;
@@ -82,7 +91,7 @@ export async function POST(request: Request) {
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
 
-        const { error } = await db.from('agent_capability_assignments').insert({
+        const { error } = await db.from('agent_capability_assignments').insert({ user_id: userId,
             id,
             agent_id,
             capability_type,
@@ -113,6 +122,10 @@ export async function POST(request: Request) {
 
 // DELETE /api/capabilities/assignments?id=xxx - Delete assignment by ID
 export async function DELETE(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');

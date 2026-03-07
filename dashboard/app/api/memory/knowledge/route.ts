@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { searchKnowledge, getRecentKnowledge, addKnowledge } from '@/lib/memory/knowledge';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/memory/knowledge — search or list knowledge fragments
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const agentId = searchParams.get('agentId');
@@ -26,6 +31,10 @@ export async function GET(request: Request) {
 
 // POST /api/memory/knowledge — add a knowledge fragment
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { agentId, content, source, tags, importance } = body;

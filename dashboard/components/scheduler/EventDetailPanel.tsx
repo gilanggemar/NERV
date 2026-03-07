@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useSchedulerStore, type SchedulerEvent } from '@/store/useSchedulerStore';
-import { useSocketStore } from '@/lib/useSocket';
+import { useAvailableAgents } from '@/hooks/useAvailableAgents';
 
 // ─── Day-of-week toggle ─────────────────────────────────────────────────────
 
@@ -71,7 +71,7 @@ export function EventDetailPanel() {
         selectedEventId, events,
         setSelectedEvent, updateEvent, deleteEvent, executeEvent,
     } = useSchedulerStore();
-    const agents = useSocketStore((s) => s.agents);
+    const agents = useAvailableAgents();
 
     const event = useMemo(() =>
         events.find(e => e.id === selectedEventId) || null,

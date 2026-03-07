@@ -4,6 +4,7 @@ import { useTaskStore } from './useTaskStore';
 import { getGateway } from './useOpenClawGateway';
 import { useOpenClawStore } from '@/store/useOpenClawStore';
 import { parseOpenClawToolCalls } from './openclawToolParser';
+import { getAgentProfile } from './agentRoster';
 
 /** Estimate token count from text (roughly 4 chars per token for English) */
 function estimateTokens(text: string): number {
@@ -196,12 +197,14 @@ function parseAgentsFromHealth(payload: any): any[] {
     if (payload?.agents && Array.isArray(payload.agents)) {
         for (const agent of payload.agents) {
             const rawId = agent.agentId;
+            const profile = getAgentProfile(rawId);
             agents.push({
                 id: rawId,
                 name: rawId.charAt(0).toUpperCase() + rawId.slice(1),
                 status: 'idle',
                 channel: 'webchat',
                 accountId: rawId,
+                avatar: profile?.avatar,
                 configured: true,
                 running: true,
                 connected: true,
@@ -227,12 +230,14 @@ function parseAgentsFromHealth(payload: any): any[] {
                         if (botName) existing.name = botName;
                         if (accountData?.lastError) existing.lastError = accountData.lastError;
                     } else {
+                        const profile = getAgentProfile(generatedId);
                         agents.push({
                             id: generatedId,
                             name: botName || (accountId !== 'default' ? accountId : channelName),
                             status: deriveStatus(accountData),
                             channel: channelName,
                             accountId,
+                            avatar: profile?.avatar,
                             running: accountData?.running ?? false,
                             connected: accountData?.connected ?? false,
                             configured: accountData?.configured ?? false,
@@ -911,8 +916,8 @@ export function useSocket() {
             console.log('[RAW FRAME]', frame);
         });
 
-        // Connect the gateway
-        gw.connect();
+        // Connection initialization is now handled strictly by useOpenClawGateway 
+        // watching the active profiles. We do not call gw.connect() here anymore.
 
     }, [addLog, setAgents, setConnected, updatePing, setGatewayInfo, setSessions,
         addChatMessage, updateChatMessage, addSummitMessage, updateSummitMessage, setChatMessages]);

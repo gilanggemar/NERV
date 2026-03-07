@@ -129,6 +129,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
             });
             if (!res.ok) throw new Error('Failed to update profile');
             await get().fetchProfiles();
+            await get().fetchActiveProfile(); // Force syncing active profile too
         } catch (err: any) {
             set({ error: err.message });
         }

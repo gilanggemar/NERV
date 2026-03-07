@@ -21,6 +21,7 @@
   },
   "registries": {
     "@cult-ui": "https://cult-ui.com/r/{name}.json",
-    "@blocks": "https://blocks.so/r/{name}.json"
+    "@blocks": "https://blocks.so/r/{name}.json",
+    "@react-bits": "https://reactbits.dev/r/{name}.json"
   }
 }

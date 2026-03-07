@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { uploadImage, deleteImage, isStorageUrl, extractStoragePath } from '@/lib/supabaseStorage';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET all hero images for an agent
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const agentId = searchParams.get('agentId');
     if (!agentId) return NextResponse.json({ error: 'Missing agentId' }, { status: 400 });
@@ -11,10 +15,11 @@ export async function GET(request: Request) {
     try {
         const { data: images } = await db.from('hero_images')
             .select('id, image_data, sort_order')
+            .eq('user_id', userId)
             .eq('agent_id', agentId)
             .order('sort_order', { ascending: true });
 
-        const { data: agent } = await db.from('agents').select('active_hero_index').eq('id', agentId).single();
+        const { data: agent } = await db.from('agents').select('active_hero_index').eq('user_id', userId).eq('id', agentId).single();
         const activeIndex = agent?.active_hero_index ?? 0;
 
         return NextResponse.json({
@@ -28,6 +33,10 @@ export async function GET(request: Request) {
 
 // POST a new hero image for an agent
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const formData = await request.formData();
         const agentId = formData.get('agentId') as string;
@@ -47,9 +56,9 @@ export async function POST(request: Request) {
         const imageUrl = await uploadImage(dataUri, path);
 
         // Ensure agent exists BEFORE inserting hero_image (foreign key constraint)
-        const { data: agentRow } = await db.from('agents').select('id').eq('id', agentId).single();
+        const { data: agentRow } = await db.from('agents').select('id').eq('user_id', userId).eq('id', agentId).single();
         if (!agentRow) {
-            await db.from('agents').insert({ id: agentId, name: agentId, status: 'idle' });
+            await db.from('agents').insert({ user_id: userId, id: agentId, name: agentId, status: 'idle' });
         }
 
         // Get current max sortOrder
@@ -61,6 +70,7 @@ export async function POST(request: Request) {
 
         // Insert new hero image with URL instead of base64
         const { data: result, error } = await db.from('hero_images').insert({
+            user_id: userId,
             agent_id: agentId,
             image_data: imageUrl,
             sort_order: nextSort,
@@ -69,7 +79,7 @@ export async function POST(request: Request) {
         if (error) throw new Error(error.message);
 
         // Update the agent's hero_image column + set active to new image
-        await db.from('agents').update({ hero_image: imageUrl, active_hero_index: nextSort }).eq('id', agentId);
+        await db.from('agents').update({ hero_image: imageUrl, active_hero_index: nextSort }).eq('user_id', userId).eq('id', agentId);
 
         return NextResponse.json({ success: true, image: { id: result.id, imageData: imageUrl, sortOrder: nextSort } });
     } catch (e: any) {
@@ -79,6 +89,10 @@ export async function POST(request: Request) {
 
 // DELETE a hero image
 export async function DELETE(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { imageId, agentId } = await request.json();
         if (!imageId) return NextResponse.json({ error: 'Missing imageId' }, { status: 400 });
@@ -101,7 +115,7 @@ export async function DELETE(request: Request) {
             }
         }
 
-        await db.from('hero_images').delete().eq('id', imageId);
+        await db.from('hero_images').delete().eq('user_id', userId).eq('id', imageId);
 
         // If we deleted the active image, reset to first available
         if (agentId) {
@@ -114,7 +128,7 @@ export async function DELETE(request: Request) {
             await db.from('agents').update({
                 hero_image: newHero,
                 active_hero_index: 0,
-            }).eq('id', agentId);
+            }).eq('user_id', userId).eq('id', agentId);
         }
 
         return NextResponse.json({ success: true });
@@ -125,6 +139,10 @@ export async function DELETE(request: Request) {
 
 // PATCH to set the active hero image index
 export async function PATCH(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { agentId, activeIndex } = await request.json();
         if (!agentId) return NextResponse.json({ error: 'Missing agentId' }, { status: 400 });
@@ -141,7 +159,7 @@ export async function PATCH(request: Request) {
         await db.from('agents').update({
             hero_image: activeImage?.image_data || null,
             active_hero_index: clamped,
-        }).eq('id', agentId);
+        }).eq('user_id', userId).eq('id', agentId);
 
         return NextResponse.json({ success: true, activeIndex: clamped });
     } catch (e: any) {

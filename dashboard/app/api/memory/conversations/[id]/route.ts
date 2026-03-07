@@ -1,15 +1,20 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { estimateTokens } from '@/lib/memory/context';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/memory/conversations/[id] — get conversation with messages
 export async function GET(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
-        const { data: convo, error } = await db.from('conversations').select('*').eq('id', id).single();
+        const { data: convo, error } = await db.from('conversations').select('*').eq('user_id', userId).eq('id', id).single();
         if (error || !convo) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
         const { data: messages } = await db.from('conversation_messages')
@@ -29,6 +34,10 @@ export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
         const body = await request.json();
@@ -40,7 +49,7 @@ export async function POST(
 
         const tokenCount = estimateTokens(content);
 
-        await db.from('conversation_messages').insert({
+        await db.from('conversation_messages').insert({ user_id: userId,
             conversation_id: id,
             role,
             content,
@@ -55,7 +64,7 @@ export async function POST(
         await db.from('conversations').update({
             updated_at: new Date().toISOString(),
             message_count: count || 0,
-        }).eq('id', id);
+        }).eq('user_id', userId).eq('id', id);
 
         return NextResponse.json({ success: true, tokenCount }, { status: 201 });
     } catch (error: unknown) {
@@ -69,10 +78,14 @@ export async function DELETE(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
-        await db.from('conversation_messages').delete().eq('conversation_id', id);
-        await db.from('conversations').delete().eq('id', id);
+        await db.from('conversation_messages').delete().eq('user_id', userId).eq('conversation_id', id);
+        await db.from('conversations').delete().eq('user_id', userId).eq('id', id);
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         console.error('Failed to delete conversation:', error);

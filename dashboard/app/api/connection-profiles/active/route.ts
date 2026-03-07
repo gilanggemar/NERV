@@ -2,14 +2,21 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/encryption';
 import { seedDefaultProfileIfEmpty } from '@/lib/seedDefaultProfile';
+import { getAuthUserId } from '@/lib/auth';
+
+// GET — Returns the active profile WITH decrypted secrets.
 
 // GET — Returns the active profile WITH decrypted secrets.
 // This route is ONLY called by server-side code and Next.js API routes.
 export async function GET() {
-    await seedDefaultProfileIfEmpty();
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    await seedDefaultProfileIfEmpty(userId);
 
     const { data: profiles } = await db.from('connection_profiles')
         .select('*')
+        .eq('user_id', userId)
         .eq('is_active', true)
         .limit(1);
 

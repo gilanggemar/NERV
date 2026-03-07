@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AGENT_ROSTER } from '@/lib/agentRoster';
+import { useSocketStore } from '@/lib/useSocket';
 import { useGamificationStore } from '@/store/useGamificationStore';
+import { useAvailableAgents } from '@/hooks/useAvailableAgents';
 
 export function useCommandCenter() {
-    const [activeAgentId, setActiveAgentId] = useState<string>('agent-zero');
+    const availableAgents = useAvailableAgents();
+    const [activeAgentId, setActiveAgentId] = useState<string>('');
     const [isMounted, setIsMounted] = useState(false);
 
     const {
@@ -14,6 +16,8 @@ export function useCommandCenter() {
         currentStreak,
         fetchAll
     } = useGamificationStore();
+
+
 
     useEffect(() => {
         setIsMounted(true);
@@ -25,8 +29,23 @@ export function useCommandCenter() {
         return () => clearInterval(statsInterval);
     }, [fetchAll]);
 
-    const activeAgent = AGENT_ROSTER.find(a => a.id === activeAgentId) || AGENT_ROSTER[4];
-    const activeAgentXp = agentXP[activeAgent.id] || { level: 1, totalXp: 0, xpToNextLevel: 100, rank: 'INITIATE' };
+    // Auto-select first agent if none is selected, or if the selected one disconnects
+    useEffect(() => {
+        if (availableAgents.length > 0) {
+            if (!activeAgentId || !availableAgents.find((a: any) => a.id === activeAgentId)) {
+                setActiveAgentId(availableAgents[0].id);
+            }
+        } else {
+            setActiveAgentId('');
+        }
+    }, [availableAgents.length, activeAgentId]); // depend on length to catch additions
+
+    const activeAgent = availableAgents.find((a: any) => a.id === activeAgentId) || null;
+
+    // Provide default XP values if agent is found but no XP data exists yet
+    const activeAgentXp = activeAgent && agentXP[activeAgent.id]
+        ? agentXP[activeAgent.id]
+        : { level: 1, totalXp: 0, xpToNextLevel: 100, rank: 'INITIATE' };
 
     return {
         isMounted,
@@ -34,6 +53,7 @@ export function useCommandCenter() {
         activeAgentXp,
         fleetPowerScore,
         currentStreak,
-        setActiveAgentId
+        setActiveAgentId,
+        availableAgents
     };
 }

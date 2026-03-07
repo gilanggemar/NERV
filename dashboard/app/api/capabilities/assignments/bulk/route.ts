@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 // POST /api/capabilities/assignments/bulk - Bulk assign
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { agent_ids, capability_type, capability_id } = body;
@@ -72,6 +77,10 @@ export async function POST(request: Request) {
 
 // DELETE /api/capabilities/assignments/bulk - Bulk unassign
 export async function DELETE(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { agent_ids, capability_type, capability_id } = body;

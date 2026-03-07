@@ -1,6 +1,7 @@
 import { useSocket, useSocketStore, ChatMessage } from "@/lib/useSocket";
 import useAgentZeroStore, { AgentZeroMessage } from "@/store/useAgentZeroStore";
 import { getGateway } from "@/lib/useOpenClawGateway";
+import { useConnectionStore } from "@/store/useConnectionStore";
 import { useMemo, useEffect, useCallback } from "react";
 
 export type AgentProvider = "openclaw" | "agent-zero" | "external";
@@ -25,12 +26,14 @@ export function useChatRouter() {
         checkConnection: checkA0Connection,
     } = useAgentZeroStore();
 
-    // Auto-connect Agent Zero if unconfigured
+    const { activeProfile } = useConnectionStore();
+
+    // Auto-connect Agent Zero if unconfigured but enabled in the profile
     useEffect(() => {
-        if (a0Status === 'unconfigured') {
+        if (a0Status === 'unconfigured' && activeProfile?.agentZeroEnabled) {
             checkA0Connection();
         }
-    }, [a0Status, checkA0Connection]);
+    }, [a0Status, checkA0Connection, activeProfile?.agentZeroEnabled]);
 
     // 1. Merge Agents
     const integratedAgents = useMemo<IntegratedAgent[]>(() => {
@@ -45,17 +48,19 @@ export function useChatRouter() {
             original: a
         }));
 
-        // Add Agent Zero
-        list.push({
-            id: "agent-zero",
-            name: "Agent Zero",
-            provider: "agent-zero",
-            isOnline: a0Status === "online",
-            original: null
-        });
+        // Add Agent Zero conditionally
+        if (activeProfile?.agentZeroEnabled) {
+            list.push({
+                id: "agent-zero",
+                name: "Agent Zero",
+                provider: "agent-zero",
+                isOnline: a0Status === "online",
+                original: null
+            });
+        }
 
         return list;
-    }, [openClawAgents, isOpenClawConnected, a0Status]);
+    }, [openClawAgents, isOpenClawConnected, a0Status, activeProfile?.agentZeroEnabled]);
 
     // 2. Get messages for a specific agent
     const getMessagesForAgent = (agentId: string): ChatMessage[] => {

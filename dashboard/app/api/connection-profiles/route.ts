@@ -2,25 +2,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { encrypt } from '@/lib/encryption';
 import { seedDefaultProfileIfEmpty } from '@/lib/seedDefaultProfile';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET — List all profiles (secrets redacted)
 export async function GET() {
-    await seedDefaultProfileIfEmpty();
-    const { data: profiles, error } = await db.from('connection_profiles').select('*');
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
+    await seedDefaultProfileIfEmpty(userId);
+    const { data: profiles, error } = await db.from('connection_profiles').select('*').eq('user_id', userId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Redact secrets before sending to client
-    const redacted = (profiles || []).map((p: any) => ({
-        ...p,
-        openclaw_auth_token: p.openclaw_auth_token ? '••••••••' : null,
-        agent_zero_api_key: p.agent_zero_api_key ? '••••••••' : null,
+    // Map snake_case DB fields to camelCase for the frontend Store
+    const mapped = (profiles || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        isActive: p.is_active,
+
+        openclawEnabled: p.openclaw_enabled,
+        openclawWsUrl: p.openclaw_ws_url,
+        openclawHttpUrl: p.openclaw_http_url,
+        openclawAuthMode: p.openclaw_auth_mode,
+        openclawAuthToken: p.openclaw_auth_token ? '••••••••' : null,
+
+        agentZeroEnabled: p.agent_zero_enabled,
+        agentZeroBaseUrl: p.agent_zero_base_url,
+        agentZeroAuthMode: p.agent_zero_auth_mode,
+        agentZeroApiKey: p.agent_zero_api_key ? '••••••••' : null,
+        agentZeroTransport: p.agent_zero_transport,
+
+        lastConnectedAt: p.last_connected_at,
+        lastHealthStatus: p.last_health_status,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
     }));
 
-    return NextResponse.json(redacted);
+    return NextResponse.json(mapped);
 }
 
 // POST — Create a new profile
 export async function POST(req: NextRequest) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const body = await req.json();
 
     // Validate required fields
@@ -31,6 +58,7 @@ export async function POST(req: NextRequest) {
     const id = crypto.randomUUID();
 
     await db.from('connection_profiles').insert({
+        user_id: userId,
         id,
         name: body.name.trim(),
         description: body.description ?? null,
@@ -50,7 +78,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Fetch the created profile
-    const { data: created } = await db.from('connection_profiles').select('*').eq('id', id).single();
+    const { data: created } = await db.from('connection_profiles').select('*').eq('user_id', userId).eq('id', id).single();
 
     return NextResponse.json({ ...created, id }, { status: 201 });
 }

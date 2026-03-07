@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getWarRoomSessions, createWarRoomSession } from '@/lib/war-room/engine';
+import { getAuthUserId } from '@/lib/auth';
 
 export async function GET() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const sessions = await getWarRoomSessions();
         return NextResponse.json(sessions);
@@ -11,6 +16,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { topic } = await request.json();
         if (!topic) return NextResponse.json({ error: 'Topic required' }, { status: 400 });

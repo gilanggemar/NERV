@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
@@ -7,6 +8,10 @@ interface RouteParams {
 
 // GET /api/capabilities/skills/[id] - Get single skill by ID
 export async function GET(request: Request, { params }: RouteParams) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { id } = await params;
         const { data, error } = await db
@@ -35,6 +40,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 // PUT /api/capabilities/skills/[id] - Update skill by ID
 export async function PUT(request: Request, { params }: RouteParams) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { id } = await params;
         const body = await request.json();
@@ -82,6 +91,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
 // DELETE /api/capabilities/skills/[id] - Delete skill by ID
 export async function DELETE(request: Request, { params }: RouteParams) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { id } = await params;
 

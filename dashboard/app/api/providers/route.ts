@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { encryptApiKey, maskApiKey, decryptApiKey } from '@/lib/providers/crypto';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/providers — list all providers
 export async function GET() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
-        const { data: rows, error } = await db.from('providers').select('*');
+        const { data: rows, error } = await db.from('providers').select('*').eq('user_id', userId);
         if (error) throw new Error(error.message);
         const result = (rows || []).map((row: any) => ({
             id: row.id,
@@ -28,6 +33,10 @@ export async function GET() {
 
 // POST /api/providers — create a new provider
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { name, type, apiKey, baseUrl } = body;
@@ -38,7 +47,7 @@ export async function POST(request: Request) {
 
         const id = crypto.randomUUID();
 
-        const { error } = await db.from('providers').insert({
+        const { error } = await db.from('providers').insert({ user_id: userId,
             id,
             name,
             type,

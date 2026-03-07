@@ -7,11 +7,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getOpenClawTokenOptional } from '@/lib/config';
+import { getAuthUserId } from '@/lib/auth';
 
 const getBaseUrl = () =>
     process.env.NEXT_PUBLIC_OPENCLAW_HTTP_URL ?? 'http://127.0.0.1:18789';
 
 export async function POST(req: NextRequest) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const token = getOpenClawTokenOptional();
         const baseUrl = getBaseUrl();
@@ -51,6 +56,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const token = getOpenClawTokenOptional();
         const baseUrl = getBaseUrl();

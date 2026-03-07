@@ -651,7 +651,10 @@ export default function ConnectionProfiles() {
         if (!selectedId) return;
         if (!window.confirm('Delete this connection profile?')) return;
         await deleteProfile(selectedId);
-        setSelectedId(null);
+
+        // Select the next active one or clear
+        const active = profiles.find((p) => p.isActive && p.id !== selectedId);
+        setSelectedId(active ? active.id : null);
     };
 
     return (

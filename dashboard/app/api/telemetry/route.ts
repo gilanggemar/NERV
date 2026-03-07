@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getTelemetrySummary, getAgentTelemetrySummary, logTelemetry } from '@/lib/telemetry/logger';
 import type { TelemetryEntry } from '@/lib/telemetry/types';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/telemetry — get summary stats (global or per-agent)
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const agentId = searchParams.get('agentId');
@@ -25,6 +30,10 @@ export async function GET(request: Request) {
 
 // POST /api/telemetry — log a new telemetry entry
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body: TelemetryEntry = await request.json();
         if (!body.agentId || !body.status) {

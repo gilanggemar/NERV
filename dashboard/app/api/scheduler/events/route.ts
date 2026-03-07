@@ -5,6 +5,7 @@ import {
     parseISO, format, isAfter, isBefore, isEqual,
     eachDayOfInterval, getDay,
 } from 'date-fns';
+import { getAuthUserId } from '@/lib/auth';
 
 // ─── Recurrence expansion helpers ────────────────────────────────────────────
 
@@ -103,13 +104,17 @@ function expandRecurrence(
 // ─── GET: Fetch events in date range ────────────────────────────────────────
 
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
         const agentId = searchParams.get('agentId');
 
-        let query = db.from('scheduler_events').select('*');
+        let query = db.from('scheduler_events').select('*').eq('user_id', userId);
         if (startDate) query = query.gte('scheduled_date', startDate);
         if (endDate) query = query.lte('scheduled_date', endDate);
         if (agentId) query = query.eq('agent_id', agentId);
@@ -151,6 +156,10 @@ export async function GET(request: Request) {
 // ─── POST: Create a new event ───────────────────────────────────────────────
 
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const id = body.id || crypto.randomUUID();
@@ -164,7 +173,7 @@ export async function POST(request: Request) {
             nextRunAt = Math.floor(dt.getTime() / 1000);
         }
 
-        const { error } = await db.from('scheduler_events').insert({
+        const { error } = await db.from('scheduler_events').insert({ user_id: userId,
             id,
             task_id: body.taskId || null,
             agent_id: body.agentId,

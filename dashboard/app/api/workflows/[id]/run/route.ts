@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createWorkflowRun } from '@/lib/workflows/engine';
+import { getAuthUserId } from '@/lib/auth';
 
 // POST /api/workflows/[id]/run — trigger a workflow execution
 export async function POST(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
         const runId = await createWorkflowRun(id, 'manual');

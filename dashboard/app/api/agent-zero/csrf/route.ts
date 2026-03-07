@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { resolveActiveConnection } from '@/lib/resolveActiveConnection';
+import { getAuthUserId } from '@/lib/auth';
 
 export async function GET() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { agentZero } = await resolveActiveConnection();
     const AGENT_ZERO_URL = agentZero.baseUrl;
     const username = process.env.AGENT_ZERO_USERNAME;

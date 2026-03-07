@@ -6,6 +6,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { OpenClawGateway } from "./openclawGateway";
 import { useOpenClawStore } from "@/store/useOpenClawStore";
+import { useSocketStore } from "@/lib/useSocket";
 
 // ── Env var fallback (always available, no async) ──
 
@@ -39,30 +40,48 @@ export function getGateway(): OpenClawGateway {
     return gatewayInstance;
 }
 
-/**
- * Fetch the active profile's OpenClaw config from the server and
- * reconfigure the gateway singleton if the profile has different settings.
- * Safe to call multiple times — only reconfigure if URL/token actually changed.
- */
 export async function loadProfileAndReconfigure(): Promise<void> {
     try {
         const res = await fetch("/api/connection-profiles/active/ws-token");
-        if (!res.ok) return; // fallback to current config
+        if (!res.ok) {
+            // If no active profile or unauthorized, firmly disconnect.
+            if (res.status === 404 || res.status === 401) {
+                if (getGateway().isConnected) {
+                    console.log("[OpenClaw Connection] No active profile found. Disconnecting...");
+                    getGateway().disconnect();
+                    useOpenClawStore.getState().setAgents([]);
+                    useSocketStore.getState().setAgents([]);
+                }
+            } else {
+                console.warn("[OpenClaw Connection] Failed to fetch profile config, keeping current.");
+            }
+            return;
+        }
+
         const data = await res.json();
-        if (!data.enabled || !data.wsUrl) return;
+
+        // If the profile explicitly disables OpenClaw, disconnect.
+        if (!data.enabled || !data.wsUrl) {
+            if (getGateway().isConnected) {
+                console.log("[OpenClaw Connection] Profile explicitly disabled OpenClaw. Disconnecting...");
+                getGateway().disconnect();
+                useOpenClawStore.getState().setAgents([]);
+                useSocketStore.getState().setAgents([]);
+            }
+            return;
+        }
 
         const gw = getGateway();
         const currentUrl = (gw as any).config?.url;
         const currentToken = (gw as any).config?.token;
 
-        // Only reconfigure if something actually changed
-        if (data.wsUrl !== currentUrl || data.token !== currentToken) {
-            console.log("[useOpenClawGateway] Profile differs from current config, reconfiguring...");
+        // Reconfigure if URL/Token changed OR if we are currently disconnected
+        if (data.wsUrl !== currentUrl || data.token !== currentToken || !gw.isConnected) {
+            console.log("[OpenClaw Connection] Profile requires new config or reconnection...");
             gw.reconfigure(data.wsUrl, data.token || "");
         }
-    } catch {
-        // Profile fetch failed — keep using current config (env vars)
-        console.warn("[useOpenClawGateway] Failed to load active profile config, using env vars.");
+    } catch (err) {
+        console.warn("[OpenClaw Connection] Exception fetching active profile:", err);
     }
 }
 
@@ -75,10 +94,17 @@ export function reconfigureGateway(wsUrl: string, token: string): void {
     gw.reconfigure(wsUrl, token);
 }
 
+import { useConnectionStore } from "@/store/useConnectionStore";
+
 export function useOpenClawGateway() {
     const gateway = useRef(getGateway());
     const isConnected = useOpenClawStore((s) => s.isConnected);
     const gatewayInfo = useOpenClawStore((s) => s.gatewayInfo);
+
+    // Watch active profile for real-time toggle changes
+    const activeProfileId = useConnectionStore((s) => s.activeProfile?.id);
+    const activeProfileUpdated = useConnectionStore((s) => s.activeProfile?.updatedAt);
+    const openclawEnabled = useConnectionStore((s) => s.activeProfile?.openclawEnabled);
 
     useEffect(() => {
         const gw = gateway.current;
@@ -138,11 +164,8 @@ export function useOpenClawGateway() {
             })
         );
 
-        // Connect the gateway (uses env vars initially)
-        gw.connect();
-
-        // After connecting, check if the active profile has different settings
-        loadProfileAndReconfigure();
+        // Note: we NO LONGER blindly connect on mount using Env Vars!
+        // We wait for the profile watcher below to sync state.
 
         // Cleanup on unmount
         return () => {
@@ -151,6 +174,11 @@ export function useOpenClawGateway() {
             // Only disconnect when the entire app unmounts (handled in ClientShell).
         };
     }, []);
+
+    useEffect(() => {
+        // React to profile switches, updates, or toggles by fetching the unredacted token
+        loadProfileAndReconfigure();
+    }, [activeProfileId, activeProfileUpdated, openclawEnabled]);
 
     // --- Public actions ---
 

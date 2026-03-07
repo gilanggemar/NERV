@@ -124,14 +124,14 @@ export const ACHIEVEMENT_DEFINITIONS = [
     },
 ];
 
-export async function checkAllAchievements() {
+export async function checkAllAchievements(userId: string) {
     // In a real app, this would evaluate conditions against the DB.
     // For now, it's a stub to prevent errors and show structure.
 }
 
-export async function getUnlockedAchievements() {
+export async function getUnlockedAchievements(userId: string) {
     // Fetch unlocked achievements + join to get definition data
-    const { data: unlocked } = await db.from('unlocked_achievements').select('*');
+    const { data: unlocked } = await db.from('unlocked_achievements').select('*').eq('user_id', userId);
     if (!unlocked || unlocked.length === 0) return [];
 
     const achievementIds = unlocked.map((u: any) => u.achievement_id);
@@ -145,8 +145,8 @@ export async function getUnlockedAchievements() {
     }));
 }
 
-export async function getLockedAchievements() {
-    const { data: unlocked } = await db.from('unlocked_achievements').select('achievement_id');
+export async function getLockedAchievements(userId: string) {
+    const { data: unlocked } = await db.from('unlocked_achievements').select('achievement_id').eq('user_id', userId);
     const unlockedIds = new Set((unlocked || []).map((u: any) => u.achievement_id));
 
     const { data: allAchievements } = await db.from('achievements').select('*');

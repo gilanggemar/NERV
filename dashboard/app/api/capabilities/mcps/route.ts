@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/capabilities/mcps - List all MCPs with optional status filter
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
 
-        let query = db.from('capability_mcps').select('*');
+        let query = db.from('capability_mcps').select('*').eq('user_id', userId);
         if (status) {
             query = query.eq('status', status);
         }
@@ -31,6 +36,10 @@ export async function GET(request: Request) {
 
 // POST /api/capabilities/mcps - Create a new MCP
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const {
@@ -53,7 +62,7 @@ export async function POST(request: Request) {
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
 
-        const { error } = await db.from('capability_mcps').insert({
+        const { error } = await db.from('capability_mcps').insert({ user_id: userId,
             id,
             name,
             description,

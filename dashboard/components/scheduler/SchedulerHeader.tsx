@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, Plus, Flame } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSchedulerStore } from '@/store/useSchedulerStore';
-import { useSocketStore } from '@/lib/useSocket';
+import { useAvailableAgents } from '@/hooks/useAvailableAgents';
 import { AgentAvatar } from '@/components/agents/AgentAvatar';
 
 // ─── Agent color helper ─────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ export function SchedulerHeader() {
         setViewRange, toggleAgentFilter, setCreateModalOpen,
     } = useSchedulerStore();
 
-    const socketAgents = useSocketStore((s) => s.agents);
+    const socketAgents = useAvailableAgents();
 
     // Fallback agents when WebSocket hasn't connected yet
     const FALLBACK_AGENTS = useMemo(() => [

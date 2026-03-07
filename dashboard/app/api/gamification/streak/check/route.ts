@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { awardXP } from '@/lib/gamification/xpEngine';
+import { getAuthUserId } from '@/lib/auth';
 
 function getTodayStr() {
     const d = new Date();
@@ -8,10 +9,15 @@ function getTodayStr() {
 }
 
 export async function POST() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
-        let { data: streak } = await db.from('operations_streak').select('*').limit(1).single();
+        let { data: streak } = await db.from('operations_streak').select('*').eq('user_id', userId).limit(1).single();
         if (!streak) {
             const { data: newStreak } = await db.from('operations_streak').insert({
+                user_id: userId,
                 current_streak: 0,
                 longest_streak: 0,
                 last_active_date: null,
@@ -54,7 +60,7 @@ export async function POST() {
             last_active_date: today,
             streak_history: parsedHistory,
             updated_at: new Date().toISOString(),
-        }).eq('id', streak.id);
+        }).eq('user_id', userId).eq('id', streak.id);
 
         // Award XP
         if (newStreak > 1) {
@@ -63,10 +69,10 @@ export async function POST() {
             if (newStreak === 14) xpTotal += 150;
             if (newStreak === 30) xpTotal += 400;
             if (newStreak === 100) xpTotal += 1500;
-            await awardXP('system', xpTotal, `Streak maintained: ${newStreak} days`);
+            await awardXP('system', userId, xpTotal, `Streak maintained: ${newStreak} days`);
         }
 
-        const { data: updated } = await db.from('operations_streak').select('*').eq('id', streak.id).single();
+        const { data: updated } = await db.from('operations_streak').select('*').eq('user_id', userId).eq('id', streak.id).single();
         return NextResponse.json(updated);
     } catch (error) {
         console.error('Error checking streak:', error);

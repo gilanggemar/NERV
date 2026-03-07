@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getMCPServers, addMCPServer } from '@/lib/mcp/client';
+import { getAuthUserId } from '@/lib/auth';
 
 export async function GET() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const servers = await getMCPServers();
         return NextResponse.json(servers);
@@ -11,6 +16,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { name, url, transport, description, apiKey } = await request.json();
         if (!name || !url || !transport) {

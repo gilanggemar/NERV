@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import { getAuditLogs } from '@/lib/telemetry/logger';
 import { logAudit } from '@/lib/telemetry/logger';
 import type { AuditEntry } from '@/lib/telemetry/types';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/audit — paginated audit logs with filters
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const limit = parseInt(searchParams.get('limit') || '50');
@@ -30,6 +35,10 @@ export async function GET(request: Request) {
 
 // POST /api/audit — log a new audit entry
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body: AuditEntry = await request.json();
         if (!body.agentId || !body.action) {

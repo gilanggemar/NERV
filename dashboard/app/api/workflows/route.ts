@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import type { WorkflowStep } from '@/lib/workflows/types';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/workflows — list all workflows
 export async function GET() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
-        const { data: rows, error } = await db.from('workflows').select('*').order('updated_at', { ascending: false });
+        const { data: rows, error } = await db.from('workflows').select('*').eq('user_id', userId).order('updated_at', { ascending: false });
         if (error) throw new Error(error.message);
         // steps and schedule are already parsed by Supabase (jsonb columns)
         return NextResponse.json(rows);
@@ -17,6 +22,10 @@ export async function GET() {
 
 // POST /api/workflows — create a new workflow
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { name, description, steps, schedule, status } = body;
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
             id: s.id || `step-${i}`,
         }));
 
-        const { data, error } = await db.from('workflows').insert({
+        const { data, error } = await db.from('workflows').insert({ user_id: userId,
             id,
             name,
             description: description || null,

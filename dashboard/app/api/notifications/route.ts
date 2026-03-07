@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getNotifications, getUnreadCount, markAsRead, markAllAsRead, deleteNotification } from '@/lib/notifications/engine';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/notifications
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const unreadOnly = searchParams.get('unreadOnly') === 'true';
@@ -20,6 +25,10 @@ export async function GET(request: Request) {
 
 // PATCH /api/notifications — mark read
 export async function PATCH(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         if (body.all) {
@@ -35,6 +44,10 @@ export async function PATCH(request: Request) {
 
 // DELETE /api/notifications?id=X
 export async function DELETE(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { searchParams } = new URL(request.url);
         const id = parseInt(searchParams.get('id') || '0');

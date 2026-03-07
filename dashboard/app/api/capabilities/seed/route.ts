@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 export async function POST() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         // Check if already seeded
         const { data: existingMcps } = await db
@@ -294,9 +299,9 @@ You are an agent operating within the NERV.OS orchestration dashboard. Follow th
         if (skillError) throw skillError;
 
         // Auto-assign all active MCPs and skills to all existing agents
-        const { data: agents } = await db.from('agents').select('id');
-        const { data: mcps } = await db.from('capability_mcps').select('id').eq('status', 'active');
-        const { data: skills } = await db.from('capability_skills').select('id').eq('status', 'active');
+        const { data: agents } = await db.from('agents').select('id').eq('user_id', userId);
+        const { data: mcps } = await db.from('capability_mcps').select('id').eq('user_id', userId).eq('status', 'active');
+        const { data: skills } = await db.from('capability_skills').select('id').eq('user_id', userId).eq('status', 'active');
 
         const assignments: Array<{
             id: string;

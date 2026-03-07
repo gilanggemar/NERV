@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { resolveActiveConnection } from '@/lib/resolveActiveConnection';
+import { getAuthUserId } from '@/lib/auth';
 
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { paths } = body;

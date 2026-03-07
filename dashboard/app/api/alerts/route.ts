@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getAlertRules, createAlertRule } from '@/lib/notifications/engine';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/alerts
 export async function GET() {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const rules = await getAlertRules();
         return NextResponse.json(rules);
@@ -13,6 +18,10 @@ export async function GET() {
 
 // POST /api/alerts
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const body = await request.json();
         const { name, condition, threshold, severity, agentId, channels, cooldownMs } = body;

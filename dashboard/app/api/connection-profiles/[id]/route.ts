@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { encrypt } from '@/lib/encryption';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET — Single profile (secrets redacted)
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
-    const { data: profile, error } = await db.from('connection_profiles').select('*').eq('id', id).single();
+    const { data: profile, error } = await db.from('connection_profiles').select('*').eq('user_id', userId).eq('id', id).single();
     if (error || !profile) {
         return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
@@ -24,6 +29,10 @@ export async function PUT(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     const body = await req.json();
 
@@ -56,31 +65,20 @@ export async function PUT(
 
     // Secret fields — only update if a new value is explicitly provided (not the redacted placeholder)
     if (body.openclawAuthToken !== undefined && body.openclawAuthToken !== '••••••••') {
-        updates.openclaw_auth_token = encrypt(body.openclawAuthToken || null);
-    }
-    if (body.agentZeroApiKey !== undefined && body.agentZeroApiKey !== '••••••••') {
-        updates.agent_zero_api_key = encrypt(body.agentZeroApiKey || null);
-    }
-
-    await db.from('connection_profiles').update(updates).eq('id', id);
-
-    return NextResponse.json({ success: true });
-}
-
-// DELETE — Remove profile
-export async function DELETE(
-    req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id } = await params;
-    // Prevent deleting the active profile
-    const { data: profile } = await db.from('connection_profiles').select('is_active').eq('id', id).single();
-    if (profile && profile.is_active) {
-        return NextResponse.json(
-            { error: 'Cannot delete the active profile. Switch to another profile first.' },
-            { status: 400 }
-        );
-    }
-    await db.from('connection_profiles').delete().eq('id', id);
-    return NextResponse.json({ success: true });
-}
+            const userId = await getAuthUserId();
+            if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
+            const { id } = await params;
+            // Prevent deleting the active profile
+            const { data: profile } = await db.from('connection_profiles').select('is_active').eq('user_id', userId).eq('id', id).single();
+            if (profile && profile.is_active) {
+                return NextResponse.json(
+                    { error: 'Cannot delete the active profile. Switch to another profile first.' },
+                    { status: 400 }
+                );
+            }
+            await db.from('connection_profiles').delete().eq('user_id', userId).eq('id', id);
+            return NextResponse.json({ success: true });
+        }

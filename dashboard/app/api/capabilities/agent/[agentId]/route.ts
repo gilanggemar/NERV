@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 interface RouteParams {
     params: Promise<{ agentId: string }>;
@@ -7,6 +8,10 @@ interface RouteParams {
 
 // GET /api/capabilities/agent/[agentId] - Get full capabilities summary for an agent
 export async function GET(request: Request, { params }: RouteParams) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { agentId } = await params;
 

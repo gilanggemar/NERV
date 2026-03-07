@@ -29,6 +29,7 @@ import {
     Link,
     Target,
     Puzzle,
+    LogOut,
 } from "lucide-react";
 import { Logo } from "./logo";
 import type { Route } from "./nav-main";
@@ -36,6 +37,8 @@ import DashboardNavigation from "./nav-main";
 import { NotificationsPopover } from "./nav-notifications";
 import { TeamSwitcher } from "./team-switcher";
 import { ThemeToggle } from "./ThemeToggle";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useRouter } from "next/navigation";
 
 const sampleNotifications = [
     {
@@ -109,6 +112,14 @@ const teams = [
 export function DashboardSidebar() {
     const { state } = useSidebar();
     const isCollapsed = state === "collapsed";
+    const user = useAuthStore((s) => s.user);
+    const signOut = useAuthStore((s) => s.signOut);
+    const router = useRouter();
+
+    const handleSignOut = async () => {
+        await signOut();
+        window.location.href = '/login';
+    };
 
     return (
         <Sidebar variant="floating" collapsible="icon">
@@ -149,7 +160,31 @@ export function DashboardSidebar() {
                     bottomRoutes={standaloneBottomRoutes}
                 />
             </SidebarContent>
-            <SidebarFooter className={cn("flex", isCollapsed ? "justify-center" : "px-4", "py-4")}>
+            <SidebarFooter className={cn("flex gap-2", isCollapsed ? "justify-center items-center" : "px-4", "py-4")}>
+                {/* User info + Sign out */}
+                {!isCollapsed && user && (
+                    <div className="flex items-center justify-between w-full mb-1">
+                        <span className="text-xs text-muted-foreground truncate max-w-[140px]" title={user.email || ''}>
+                            {user.email}
+                        </span>
+                        <button
+                            onClick={handleSignOut}
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            title="Sign Out"
+                        >
+                            <LogOut className="size-3.5" />
+                        </button>
+                    </div>
+                )}
+                {isCollapsed && user && (
+                    <button
+                        onClick={handleSignOut}
+                        className="flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                        title="Sign Out"
+                    >
+                        <LogOut className="size-3.5" />
+                    </button>
+                )}
                 <ThemeToggle />
             </SidebarFooter>
         </Sidebar>

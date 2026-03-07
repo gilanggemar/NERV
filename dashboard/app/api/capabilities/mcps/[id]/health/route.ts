@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getAuthUserId } from '@/lib/auth';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
@@ -7,6 +8,10 @@ interface RouteParams {
 
 // POST /api/capabilities/mcps/[id]/health - Perform health check on MCP
 export async function POST(request: Request, { params }: RouteParams) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     try {
         const { id } = await params;
 

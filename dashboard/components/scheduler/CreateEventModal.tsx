@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useSchedulerStore, type SchedulerEvent } from '@/store/useSchedulerStore';
-import { useSocketStore } from '@/lib/useSocket';
+import { useAvailableAgents } from '@/hooks/useAvailableAgents';
 import { useTaskStore } from '@/lib/useTaskStore';
 
 // ─── Day-of-week toggle (reused) ────────────────────────────────────────────
@@ -37,7 +37,7 @@ export function CreateEventModal() {
         createModalOpen, createModalDate,
         setCreateModalOpen, createEvent,
     } = useSchedulerStore();
-    const socketAgents = useSocketStore((s) => s.agents);
+    const socketAgents = useAvailableAgents();
     const tasks = useTaskStore((s) => s.tasks);
 
     // Fallback agents when WebSocket hasn't connected yet

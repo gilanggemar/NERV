@@ -27,11 +27,11 @@ export function calculateLevel(totalXp: number): { level: number; currentLevelXp
     };
 }
 
-export async function awardXP(agentId: string, amount: number, reason: string, sourceId?: string) {
-    if (!agentId || amount <= 0) return;
+export async function awardXP(agentId: string, userId: string, amount: number, reason: string, sourceId?: string) {
+    if (!agentId || amount <= 0 || !userId) return;
 
     try {
-        const { data: existing } = await db.from('agent_xp').select('*').eq('agent_id', agentId).single();
+        const { data: existing } = await db.from('agent_xp').select('*').eq('user_id', userId).eq('agent_id', agentId).single();
 
         let newTotalXp = amount;
         if (existing) {
@@ -47,9 +47,10 @@ export async function awardXP(agentId: string, amount: number, reason: string, s
                 xp_to_next_level: xpToNextLevel,
                 rank,
                 updated_at: new Date().toISOString(),
-            }).eq('agent_id', agentId);
+            }).eq('user_id', userId).eq('agent_id', agentId);
         } else {
             await db.from('agent_xp').insert({
+                user_id: userId,
                 agent_id: agentId,
                 total_xp: newTotalXp,
                 level,
@@ -60,30 +61,31 @@ export async function awardXP(agentId: string, amount: number, reason: string, s
         }
 
         await db.from('xp_events').insert({
+            user_id: userId,
             agent_id: agentId,
             amount,
             reason,
             source_id: sourceId || null,
         });
 
-        await checkAllAchievements();
+        await checkAllAchievements(userId);
 
     } catch (error) {
         console.error('Failed to award XP:', error);
     }
 }
 
-export async function getAgentXP(agentId: string) {
-    const { data } = await db.from('agent_xp').select('*').eq('agent_id', agentId).single();
+export async function getAgentXP(agentId: string, userId: string) {
+    const { data } = await db.from('agent_xp').select('*').eq('user_id', userId).eq('agent_id', agentId).single();
     return data;
 }
 
-export async function getAllAgentXP() {
-    const { data } = await db.from('agent_xp').select('*');
+export async function getAllAgentXP(userId: string) {
+    const { data } = await db.from('agent_xp').select('*').eq('user_id', userId);
     return data || [];
 }
 
-export async function getFleetPowerScore() {
-    const allXp = await getAllAgentXP();
+export async function getFleetPowerScore(userId: string) {
+    const allXp = await getAllAgentXP(userId);
     return allXp.reduce((acc: number, curr: any) => acc + curr.total_xp, 0);
 }

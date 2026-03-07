@@ -7,7 +7,7 @@ import { format, isToday as checkIsToday } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { TaskCard } from './TaskCard';
 import { useSchedulerStore, type SchedulerEvent } from '@/store/useSchedulerStore';
-import { useSocketStore } from '@/lib/useSocket';
+import { useAvailableAgents } from '@/hooks/useAvailableAgents';
 
 // ─── Agent color helper ─────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ export const DateColumn = memo(function DateColumn({
         data: { type: 'date-column', date: dateStr },
     });
 
-    const agents = useSocketStore((s) => s.agents);
+    const agents = useAvailableAgents();
     const setCreateModalOpen = useSchedulerStore((s) => s.setCreateModalOpen);
 
     const dayName = format(date, 'EEE');

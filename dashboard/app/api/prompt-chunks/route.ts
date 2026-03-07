@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
+import { getAuthUserId } from '@/lib/auth';
 
 export async function GET() {
     try {
-        const { data: chunks, error } = await db.from('prompt_chunks').select('*').order('order', { ascending: true });
+        const userId = await getAuthUserId();
+        if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const { data: chunks, error } = await db.from('prompt_chunks').select('*').eq('user_id', userId).order('order', { ascending: true });
         if (error) throw new Error(error.message);
         return NextResponse.json({ chunks });
     } catch (error) {
@@ -12,8 +16,10 @@ export async function GET() {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
-
 export async function POST(req: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     try {
         const body = await req.json();
         const { name, content, color, category } = body;
@@ -31,7 +37,7 @@ export async function POST(req: Request) {
         const id = crypto.randomUUID();
 
         // Get max order
-        const { data: chunks } = await db.from('prompt_chunks').select('order');
+        const { data: chunks } = await db.from('prompt_chunks').select('order').eq('user_id', userId);
         const maxOrder = chunks && chunks.length > 0 ? Math.max(...chunks.map((c: any) => c.order)) : -1;
         const newOrder = maxOrder + 1;
 

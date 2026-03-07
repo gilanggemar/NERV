@@ -2,6 +2,7 @@
 
 import { useSocket, useSocketStore, SummitMessage } from "@/lib/useSocket";
 import { useTaskStore } from "@/lib/useTaskStore";
+import { useConnectionStore } from "@/store/useConnectionStore";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
     Send, Bot, User, BrainCircuit, Loader2,
@@ -168,7 +169,10 @@ export default function SummitPage() {
 
     const roundInFlight = currentSpeaker !== null || speakerQueue.length > 0;
 
-    const onlineAgents = useMemo(() => agents.filter(a => a.status !== 'offline'), [agents]);
+    const { activeProfile } = useConnectionStore();
+    const onlineAgents = useMemo(() => {
+        return [...agents].filter(a => a.status !== 'offline');
+    }, [agents]);
 
     useEffect(() => {
         const escalatedTopic = sessionStorage.getItem('nerv_escalation_topic');

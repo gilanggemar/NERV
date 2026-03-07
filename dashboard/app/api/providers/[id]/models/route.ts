@@ -3,15 +3,20 @@ import { db } from '@/lib/db';
 import { decryptApiKey } from '@/lib/providers/crypto';
 import { providerRegistry } from '@/lib/providers/registry';
 import type { ProviderType } from '@/lib/providers/types';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/providers/[id]/models — list available models for a provider
 export async function GET(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
-        const { data: row, error } = await db.from('providers').select('*').eq('id', id).single();
+        const { data: row, error } = await db.from('providers').select('*').eq('user_id', userId).eq('id', id).single();
         if (error || !row) return NextResponse.json({ error: 'Provider not found' }, { status: 404 });
 
         const adapter = providerRegistry.get(row.type as ProviderType);

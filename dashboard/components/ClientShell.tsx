@@ -8,12 +8,14 @@ import { useEffect } from "react";
 import { useGamificationStore } from "@/store/useGamificationStore";
 import { useOpenClawGateway } from "@/lib/useOpenClawGateway";
 import { useOpenClawStore } from "@/store/useOpenClawStore";
+import { useConnectionStore } from "@/store/useConnectionStore";
 import { ExecApprovalModal } from "@/components/ExecApprovalModal";
 import { useHealthPoller } from "@/lib/useHealthPoller";
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
     useKeyboardShortcuts();
     const pathname = usePathname();
+    const fetchActiveProfile = useConnectionStore((s) => s.fetchActiveProfile);
     const fetchAll = useGamificationStore((s) => s.fetchAll);
 
     // Initialize gateway connection — this wires all events into the store
@@ -28,11 +30,12 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         fetchAll();
+        fetchActiveProfile();
         const interval = setInterval(() => {
             useGamificationStore.getState().checkStreak();
         }, 1000 * 60 * 60 * 2);
         return () => clearInterval(interval);
-    }, [fetchAll]);
+    }, [fetchAll, fetchActiveProfile]);
 
     const handleApprove = async (id: string) => {
         try {

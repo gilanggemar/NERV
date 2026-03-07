@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { parseISO } from 'date-fns';
+import { getAuthUserId } from '@/lib/auth';
 
 // ─── GET: Single event by ID ────────────────────────────────────────────────
 
@@ -8,9 +9,13 @@ export async function GET(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
-        const { data: event, error } = await db.from('scheduler_events').select('*').eq('id', id).single();
+        const { data: event, error } = await db.from('scheduler_events').select('*').eq('user_id', userId).eq('id', id).single();
         if (error || !event) {
             return NextResponse.json({ error: 'Not found' }, { status: 404 });
         }
@@ -27,6 +32,10 @@ export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
         const body = await request.json();
@@ -66,7 +75,7 @@ export async function PUT(
         const scheduledDate = body.scheduledDate;
         const scheduledTime = body.scheduledTime;
         if (scheduledDate !== undefined || scheduledTime !== undefined) {
-            const { data: existing } = await db.from('scheduler_events').select('*').eq('id', id).single();
+            const { data: existing } = await db.from('scheduler_events').select('*').eq('user_id', userId).eq('id', id).single();
             if (existing) {
                 const dateStr = scheduledDate || existing.scheduled_date;
                 const timeStr = scheduledTime !== undefined ? scheduledTime : existing.scheduled_time;
@@ -90,9 +99,13 @@ export async function DELETE(
     _request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { id } = await params;
     try {
-        await db.from('scheduler_events').delete().eq('id', id);
+        await db.from('scheduler_events').delete().eq('user_id', userId).eq('id', id);
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         console.error('DELETE /api/scheduler/events/[id] error:', error);

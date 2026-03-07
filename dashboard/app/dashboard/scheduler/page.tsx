@@ -15,6 +15,7 @@ import { TaskCardTray } from '@/components/scheduler/TaskCardTray';
 import { TaskCard } from '@/components/scheduler/TaskCard';
 import { useSchedulerStore, type SchedulerEvent } from '@/store/useSchedulerStore';
 import { useSocketStore } from '@/lib/useSocket';
+import { useAvailableAgents } from '@/hooks/useAvailableAgents';
 import type { Task } from '@/lib/useTaskStore';
 
 const CalendarTimeline = dynamic(
@@ -52,7 +53,8 @@ export default function SchedulerPage() {
         fetchEvents, setDraggedEvent, setDropTargetDate,
         createEvent, moveEventToDate, selectedEventId,
     } = useSchedulerStore();
-    const agents = useSocketStore((s) => s.agents);
+
+    const agents = useAvailableAgents();
 
     // dnd-kit sensors — 8px activation distance to prevent accidental drags
     const sensors = useSensors(

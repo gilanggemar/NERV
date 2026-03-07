@@ -10,6 +10,7 @@
 
 import { db } from './db';
 import { decrypt } from './encryption';
+import { getAuthUserId } from './auth';
 
 export interface ResolvedOpenClaw {
     enabled: boolean;
@@ -55,16 +56,29 @@ function envFallback(): ResolvedConnection {
  * Resolves the active connection profile from the database.
  * Falls back to env vars on any failure.
  */
-export async function resolveActiveConnection(): Promise<ResolvedConnection> {
+export async function resolveActiveConnection(providedUserId?: string): Promise<ResolvedConnection> {
     try {
+        const userId = providedUserId || await getAuthUserId();
+
+        if (!userId) {
+            console.warn('[resolveActiveConnection] No userId found, using env vars');
+            return envFallback();
+        }
+
         const { data: profiles } = await db
             .from('connection_profiles')
             .select('*')
+            .eq('user_id', userId)
             .eq('is_active', true)
             .limit(1);
 
         if (!profiles || profiles.length === 0) {
-            return envFallback();
+            // New or unconfigured user. Do NOT leak global env vars to them.
+            return {
+                profileName: 'Unconfigured',
+                openclaw: { enabled: false, wsUrl: '', httpUrl: '', token: '' },
+                agentZero: { enabled: false, baseUrl: '', apiKey: '', transport: 'rest' }
+            };
         }
 
         const p = profiles[0];

@@ -111,10 +111,22 @@ export class OpenClawGateway {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+
+    // Clear out pending requests without throwing noisy unhandled rejections
+    for (const [id, pending] of this.pendingRequests) {
+      clearTimeout(pending.timeout);
+      // Suppress noisy rejected promises on intentional disconnect
+      pending.resolve({ type: 'intentional-close', ok: false });
+    }
+    this.pendingRequests.clear();
+
     if (this.ws) {
+      this.ws.onerror = null;
+      this.ws.onclose = null;
       this.ws.close(1000, "Client disconnecting");
       this.ws = null;
     }
+
     this._isConnected = false;
     this._isHandshakeComplete = false;
   }

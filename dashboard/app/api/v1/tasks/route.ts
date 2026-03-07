@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import { validateApiKey } from '@/lib/api/auth';
 import { getScheduledTasks, createScheduledTask } from '@/lib/scheduler/engine';
 import { getNotifications, getUnreadCount } from '@/lib/notifications/engine';
+import { getAuthUserId } from '@/lib/auth';
 
 // GET /api/v1/tasks — list workflows and schedules
 export async function GET(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { valid, error } = await validateApiKey(request.headers.get('authorization'));
     if (!valid) return NextResponse.json({ error }, { status: 401 });
 
@@ -22,6 +27,10 @@ export async function GET(request: Request) {
 
 // POST /api/v1/tasks — create a scheduled task
 export async function POST(request: Request) {
+    const userId = await getAuthUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+
     const { valid, error } = await validateApiKey(request.headers.get('authorization'));
     if (!valid) return NextResponse.json({ error }, { status: 401 });
 
