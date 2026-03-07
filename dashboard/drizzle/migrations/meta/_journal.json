@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1772215167286,
+      "tag": "0000_safe_frightful_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1772288605723,
+      "tag": "0001_cute_excalibur",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772620883459,
+      "tag": "0002_loving_venus",
+      "breakpoints": true
+    }
+  ]
+}

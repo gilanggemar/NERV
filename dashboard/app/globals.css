@@ -1,0 +1,932 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./code-theme.css";
+
+@custom-variant dark (&:is(.dark *));
+
+html {
+  font-size: 90%;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-accent-base: var(--accent-base);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-pressed: var(--accent-pressed);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-secondary-hover: var(--accent-secondary-hover);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-base: var(--bg-base);
+  --color-status-online: var(--status-online);
+  --color-status-warning: var(--status-warning);
+  --color-status-error: var(--status-error);
+  --color-status-info: var(--status-info);
+  --color-status-offline: var(--status-offline);
+
+  --color-border-card: var(--border-card);
+  --color-border-card-hover: var(--border-card-hover);
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-elevated: var(--shadow-elevated);
+  --color-sidebar-icon: var(--sidebar-icon);
+
+  /* --- Extended Accent Palette --- */
+  --color-accent-ocean: var(--accent-ocean);
+  --color-accent-ocean-soft: var(--accent-ocean-soft);
+  --color-accent-ocean-ultra: var(--accent-ocean-ultra);
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-teal-soft: var(--accent-teal-soft);
+  --color-accent-teal-ultra: var(--accent-teal-ultra);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-violet-soft: var(--accent-violet-soft);
+  --color-accent-violet-ultra: var(--accent-violet-ultra);
+  --color-accent-coral: var(--accent-coral);
+  --color-accent-coral-soft: var(--accent-coral-soft);
+  --color-accent-coral-ultra: var(--accent-coral-ultra);
+  --color-accent-lime: var(--accent-lime);
+  --color-accent-lime-soft: var(--accent-lime-soft);
+  --color-accent-lime-ultra: var(--accent-lime-ultra);
+
+  --color-status-healthy: var(--status-healthy);
+  --color-status-healthy-bg: var(--status-healthy-bg);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-error: var(--status-error);
+  --color-status-error-bg: var(--status-error-bg);
+  --color-status-active: var(--status-active);
+  --color-status-external: var(--status-external);
+  --color-status-external-bg: var(--status-external-bg);
+  --color-status-deliberation: var(--status-deliberation);
+  --color-status-deliberation-bg: var(--status-deliberation-bg);
+  --color-status-live: var(--status-live);
+  --color-status-live-bg: var(--status-live-bg);
+  --color-status-offline: var(--status-offline);
+  --color-status-offline-bg: var(--status-offline-bg);
+
+  --color-agent-daisy: var(--agent-daisy);
+  --color-agent-ivy: var(--agent-ivy);
+  --color-agent-celia: var(--agent-celia);
+  --color-agent-thalia: var(--agent-thalia);
+  --color-agent-zero: var(--agent-zero);
+}
+
+:root {
+  /* LIGHT MODE */
+  --radius: 0.5rem;
+
+  --bg-base: #F5F1ED;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-sidebar: #EDE8E3;
+  --bg-input: #FFFFFF;
+
+  --border-subtle: rgba(69, 48, 39, 0.08);
+  --border-default: rgba(69, 48, 39, 0.14);
+  --border-focus: rgba(255, 109, 41, 0.40);
+  --border-card: rgba(69, 48, 39, 0.10);
+
+  --text-primary: #1A1412;
+  --text-secondary: #3D302A;
+  --text-muted: rgba(26, 20, 18, 0.45);
+  --text-on-accent: #FFFFFF;
+
+  --accent-base: #E85A1B;
+  --accent-hover: #FF6D29;
+  --accent-pressed: #CC4A12;
+  --accent-subtle: rgba(232, 90, 27, 0.08);
+  --accent-glow: rgba(232, 90, 27, 0.05);
+  --accent-border: rgba(232, 90, 27, 0.35);
+
+  --accent-secondary: #D4C4B8;
+  --accent-secondary-hover: #C5B3A5;
+
+  --status-online: #16A34A;
+  --status-warning: #D97706;
+  --status-error: #DC2626;
+  --status-info: #E85A1B;
+  --status-offline: #9C9590;
+
+  --sidebar-active-bg: rgba(232, 90, 27, 0.08);
+  --sidebar-active-text: #1A1412;
+  --sidebar-active-bar: #E85A1B;
+  --sidebar-hover-bg: rgba(26, 20, 18, 0.04);
+  --sidebar-group-label: rgba(26, 20, 18, 0.50);
+
+  --shadow-card: 0 1px 3px rgba(69, 48, 39, 0.06), 0 1px 2px rgba(69, 48, 39, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(69, 48, 39, 0.08), 0 1px 3px rgba(69, 48, 39, 0.06);
+  --border-card-hover: rgba(232, 90, 27, 0.20);
+  --shadow-elevated: 0 4px 16px rgba(69, 48, 39, 0.12);
+  --shadow-glow: 0 0 20px rgba(232, 90, 27, 0.04);
+
+  /* Shadcn bindings */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-base);
+  --primary-foreground: var(--text-on-accent);
+  --secondary: var(--bg-elevated);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--bg-elevated);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--accent-subtle);
+  --accent-foreground: var(--accent-base);
+  --destructive: var(--status-error);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--border-focus);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: var(--bg-sidebar);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--accent-base);
+  --sidebar-primary-foreground: var(--text-on-accent);
+  --sidebar-accent: var(--sidebar-active-bg);
+  --sidebar-accent-foreground: var(--sidebar-active-text);
+  --sidebar-border: var(--border-default);
+  --sidebar-ring: var(--border-focus);
+
+  /* --- Extended Accent Palette (Light Mode) --- */
+  --accent-ocean: oklch(0.45 0.12 232);
+  --accent-ocean-soft: oklch(0.90 0.04 232);
+  --accent-ocean-ultra: oklch(0.95 0.02 232);
+
+  --accent-teal: oklch(0.50 0.11 195);
+  --accent-teal-soft: oklch(0.92 0.04 195);
+  --accent-teal-ultra: oklch(0.96 0.02 195);
+
+  --accent-violet: oklch(0.45 0.11 290);
+  --accent-violet-soft: oklch(0.92 0.04 290);
+  --accent-violet-ultra: oklch(0.96 0.02 290);
+
+  --accent-coral: oklch(0.55 0.16 25);
+  --accent-coral-soft: oklch(0.92 0.06 25);
+  --accent-coral-ultra: oklch(0.96 0.03 25);
+
+  --accent-lime: oklch(0.52 0.14 135);
+  --accent-lime-soft: oklch(0.92 0.05 135);
+  --accent-lime-ultra: oklch(0.96 0.02 135);
+
+  /* --- Semantic Status Tokens (Light Mode defaults) --- */
+  --status-healthy: var(--accent-lime);
+  --status-healthy-bg: var(--accent-lime-ultra);
+  --status-warning-bg: var(--accent-coral-ultra);
+  --status-error-bg: var(--accent-coral-ultra);
+  --status-active: var(--accent-base);
+  --status-external: var(--accent-ocean);
+  --status-external-bg: var(--accent-ocean-ultra);
+  --status-deliberation: var(--accent-violet);
+  --status-deliberation-bg: var(--accent-violet-ultra);
+  --status-live: var(--accent-teal);
+  --status-live-bg: var(--accent-teal-ultra);
+  --status-offline-bg: oklch(0.90 0.00 0);
+
+  /* --- Agent Identity Colors --- */
+  --agent-daisy: var(--accent-lime);
+  --agent-ivy: var(--accent-teal);
+  --agent-celia: var(--accent-violet);
+  --agent-thalia: var(--accent-coral);
+  --agent-zero: var(--accent-ocean);
+}
+
+:root[data-theme="dark"],
+.dark {
+  /* DARK MODE */
+  --bg-base: #080706;
+  --bg-surface: #151311;
+  --bg-elevated: #1A1816;
+  --bg-sidebar: #0C0A09;
+  --bg-input: #1A1714;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-focus: rgba(255, 109, 41, 0.30);
+  --border-card: rgba(255, 255, 255, 0.07);
+
+  --text-primary: #F5F0EB;
+  --text-secondary: rgba(245, 240, 235, 0.55);
+  --text-muted: rgba(245, 240, 235, 0.32);
+  --text-on-accent: #0A0908;
+
+  --accent-base: #FF6D29;
+  --accent-hover: #FF8247;
+  --accent-pressed: #E55A1B;
+  --accent-subtle: rgba(255, 109, 41, 0.12);
+  --accent-glow: rgba(255, 109, 41, 0.08);
+  --accent-border: rgba(255, 109, 41, 0.25);
+
+  --accent-secondary: #453027;
+  --accent-secondary-hover: #5A4035;
+
+  --status-online: #22C55E;
+  --status-warning: #F59E0B;
+  --status-error: #EF4444;
+  --status-info: #FF6D29;
+  --status-offline: #6B6560;
+
+  --sidebar-active-bg: rgba(255, 109, 41, 0.10);
+  --sidebar-active-text: #FF8247;
+  --sidebar-active-bar: #FF6D29;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+  --sidebar-group-label: rgba(245, 240, 235, 0.35);
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 0 16px rgba(255, 109, 41, 0.04);
+  --border-card-hover: rgba(255, 109, 41, 0.15);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(255, 109, 41, 0.06);
+
+  /* Shadcn bindings */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-base);
+  --primary-foreground: var(--text-on-accent);
+  --secondary: var(--bg-elevated);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--bg-elevated);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--accent-subtle);
+  --accent-foreground: var(--accent-base);
+  --destructive: var(--status-error);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--border-focus);
+  --chart-1: oklch(0.70 0.10 70);
+  --chart-2: oklch(0.65 0.10 160);
+  --chart-3: oklch(0.60 0.08 30);
+  --chart-4: oklch(0.75 0.08 90);
+  --chart-5: oklch(0.55 0.06 350);
+  --sidebar: var(--bg-sidebar);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--accent-base);
+  --sidebar-primary-foreground: var(--text-on-accent);
+  --sidebar-accent: var(--sidebar-active-bg);
+  --sidebar-accent-foreground: var(--sidebar-active-text);
+  --sidebar-border: var(--border-default);
+  --sidebar-ring: var(--border-focus);
+
+  /* --- Extended Accent Palette (Dark Mode) --- */
+  --accent-ocean: oklch(0.55 0.15 232);
+  --accent-ocean-soft: oklch(0.30 0.08 232);
+  --accent-ocean-ultra: oklch(0.20 0.04 232);
+
+  --accent-teal: oklch(0.72 0.14 195);
+  --accent-teal-soft: oklch(0.30 0.06 195);
+  --accent-teal-ultra: oklch(0.18 0.03 195);
+
+  --accent-violet: oklch(0.55 0.14 290);
+  --accent-violet-soft: oklch(0.28 0.08 290);
+  --accent-violet-ultra: oklch(0.18 0.04 290);
+
+  --accent-coral: oklch(0.65 0.19 25);
+  --accent-coral-soft: oklch(0.30 0.10 25);
+  --accent-coral-ultra: oklch(0.18 0.05 25);
+
+  --accent-lime: oklch(0.78 0.17 135);
+  --accent-lime-soft: oklch(0.30 0.08 135);
+  --accent-lime-ultra: oklch(0.18 0.04 135);
+
+  /* --- Semantic Status Tokens (Dark Mode overrides) --- */
+  --status-healthy: var(--accent-lime);
+  --status-healthy-bg: var(--accent-lime-ultra);
+  --status-warning-bg: var(--accent-coral-ultra);
+  --status-error-bg: var(--accent-coral-ultra);
+  --status-active: var(--accent-base);
+  --status-external: var(--accent-ocean);
+  --status-external-bg: var(--accent-ocean-ultra);
+  --status-deliberation: var(--accent-violet);
+  --status-deliberation-bg: var(--accent-violet-ultra);
+  --status-live: var(--accent-teal);
+  --status-live-bg: var(--accent-teal-ultra);
+  --status-offline-bg: oklch(0.15 0.00 0);
+
+  /* --- Agent Identity Colors --- */
+  --agent-daisy: var(--accent-lime);
+  --agent-ivy: var(--accent-teal);
+  --agent-celia: var(--accent-violet);
+  --agent-thalia: var(--accent-coral);
+  --agent-zero: var(--accent-ocean);
+
+  /* --- Workflow Builder Tokens --- */
+  --wf-canvas-bg: oklch(0.06 0.003 60);
+  --wf-grid-dot: oklch(1 0 0 / 0.04);
+  --wf-edge-default: oklch(1 0 0 / 0.12);
+  --wf-edge-active: oklch(0.75 0.18 55);
+  --wf-edge-success: oklch(0.65 0.17 145);
+  --wf-edge-error: oklch(0.60 0.20 25);
+  --wf-node-shadow: 0 4px 24px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(1 0 0 / 0.06);
+  --wf-node-shadow-selected: 0 4px 32px oklch(0 0 0 / 0.4), 0 0 0 2px var(--accent-base);
+  --wf-node-shadow-executing: 0 4px 32px oklch(0.75 0.18 55 / 0.25), 0 0 0 2px oklch(0.75 0.18 55 / 0.5);
+
+  /* ═══ GAMIFICATION TIER COLORS ═══ */
+  --rarity-common: oklch(0.65 0.03 220);
+  --rarity-rare: oklch(0.62 0.16 250);
+  --rarity-epic: oklch(0.58 0.22 300);
+  --rarity-legendary: oklch(0.78 0.18 85);
+  
+  --xp-bar-start: var(--accent-base);
+  --xp-bar-end: oklch(0.80 0.16 85);
+  --xp-bar-bg: oklch(0.18 0.005 60);
+  --xp-text: oklch(0.82 0.14 85);
+  --xp-gradient-start: #FF6D29;
+  --xp-gradient-end: #FFBA08;
+  
+  --streak-flame-core: oklch(0.72 0.20 55);
+  --streak-flame-edge: oklch(0.58 0.24 30);
+  --streak-dormant: oklch(0.35 0.02 60);
+  
+  --achievement-flash: oklch(0.85 0.16 85);
+  --achievement-glow: oklch(0.80 0.18 85 / 0.3);
+  
+  --mission-easy: oklch(0.72 0.14 155);
+  --mission-medium: oklch(0.75 0.14 85);
+  --mission-hard: oklch(0.62 0.20 25);
+  
+  /* ═══ EXPANDED SURFACE COLORS ═══ */
+  --surface-tinted-lime: oklch(0.14 0.02 135 / 0.6);
+  --surface-tinted-teal: oklch(0.14 0.02 195 / 0.6);
+  --surface-tinted-violet: oklch(0.14 0.02 290 / 0.6);
+  --surface-tinted-coral: oklch(0.14 0.02 25 / 0.6);
+  --surface-tinted-ocean: oklch(0.14 0.02 232 / 0.6);
+
+  /* ═══ GAMIFICATION NEW ACCENT COLORS ═══ */
+  --accent-gold: oklch(0.80 0.16 85);
+  --accent-ember: oklch(0.62 0.22 30);
+  --accent-plasma: oklch(0.60 0.20 310);
+  --accent-frost: oklch(0.82 0.08 220);
+  
+  /* ═══ SEMANTIC ADDITIONS ═══ */
+  --chart-fill-primary: oklch(0.65 0.19 25 / 0.15);
+  --chart-fill-secondary: oklch(0.72 0.14 195 / 0.15);
+  --chart-fill-tertiary: oklch(0.55 0.14 290 / 0.15);
+  --chart-stroke-primary: var(--accent-base);
+  --chart-stroke-secondary: var(--accent-teal);
+  --chart-stroke-tertiary: var(--accent-violet);
+  
+  --hover-lift-shadow: oklch(0 0 0 / 0.3);
+  --hover-border-glow: oklch(1 0 0 / 0.12);
+  --focus-ring: var(--accent-base);
+  --focus-ring-offset: var(--bg-base);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    background: var(--bg-base);
+    background-image: radial-gradient(ellipse at 50% 0%, var(--bg-elevated) 0%, var(--bg-base) 80%);
+    background-attachment: fixed;
+    @apply text-foreground;
+  }
+
+  /* Force form elements to inherit theme text color (browsers default to black) */
+  input,
+  textarea,
+  select,
+  [data-slot="select-trigger"] {
+    color: var(--foreground) !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground) !important;
+  }
+}
+
+/* Custom Minimal Scrollbar (Global) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Forcefully remove sidebar scrollbars */
+[data-sidebar="content"]::-webkit-scrollbar,
+[data-sidebar="sidebar"]::-webkit-scrollbar,
+[data-slot="sidebar-content"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+[data-sidebar="content"],
+[data-sidebar="sidebar"],
+[data-slot="sidebar-content"] {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ============================================
+   NERV.OS Typography System
+   ============================================ */
+
+/* --- Page-Level Headings --- */
+.nerv-h1 {
+  font-size: 1.75rem;
+  /* 28px */
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.nerv-h2 {
+  font-size: 1.375rem;
+  /* 22px */
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* --- Section Headers --- */
+.nerv-section {
+  font-size: 0.6875rem;
+  /* 11px */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+/* Variant: section header with normal opacity */
+.nerv-section-prominent {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+/* --- Metric Numbers --- */
+.nerv-metric-xl {
+  font-size: 2.5rem;
+  /* 40px */
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.nerv-metric-lg {
+  font-size: 2rem;
+  /* 32px */
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.nerv-metric-md {
+  font-size: 1.25rem;
+  /* 20px */
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.nerv-metric-sm {
+  font-size: 0.9375rem;
+  /* 15px */
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* --- Body Text --- */
+.nerv-body {
+  font-size: 0.875rem;
+  /* 14px */
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.nerv-body-sm {
+  font-size: 0.8125rem;
+  /* 13px */
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* --- Captions / Timestamps / Tertiary Text --- */
+.nerv-caption {
+  font-size: 0.75rem;
+  /* 12px */
+  font-weight: 400;
+  opacity: 0.5;
+  line-height: 1.4;
+}
+
+/* --- Badge / Chip Labels --- */
+.nerv-badge-text {
+  font-size: 0.625rem;
+  /* 10px */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+/* --- Mono / Code Text --- */
+.nerv-mono {
+  font-family: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code',
+    ui-monospace, monospace;
+  font-size: 0.8125rem;
+  /* 13px */
+  font-weight: 400;
+  line-height: 1.5;
+  font-variant-ligatures: none;
+}
+
+.nerv-mono-sm {
+  font-family: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code',
+    ui-monospace, monospace;
+  font-size: 0.6875rem;
+  /* 11px */
+  font-weight: 400;
+  line-height: 1.5;
+  font-variant-ligatures: none;
+}
+
+/* --- Global Numeric Stability --- */
+[data-metric],
+time,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-metrics-container] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Glassmorphism Elevation System --- */
+
+/* Level 1: Subtle glass — for secondary panels, sidebars */
+.nerv-glass-1 {
+  background: oklch(0.15 0.005 0 / 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid oklch(1 0 0 / 0.06);
+}
+
+/* Level 2: Medium glass — for primary cards, hero sections */
+.nerv-glass-2 {
+  background: oklch(0.13 0.005 0 / 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid oklch(1 0 0 / 0.08);
+  box-shadow:
+    0 4px 24px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 oklch(1 0 0 / 0.04);
+}
+
+/* Level 3: Heavy glass — for modals, floating panels, command palette */
+.nerv-glass-3 {
+  background: oklch(0.11 0.005 0 / 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid oklch(1 0 0 / 0.10);
+  box-shadow:
+    0 8px 40px oklch(0 0 0 / 0.35),
+    0 2px 8px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 oklch(1 0 0 / 0.05);
+}
+
+/* Light mode variants */
+[data-theme="light"] .nerv-glass-1 {
+  background: oklch(0.99 0.005 0 / 0.6);
+  border: 1px solid oklch(0 0 0 / 0.06);
+}
+
+[data-theme="light"] .nerv-glass-2 {
+  background: oklch(0.99 0.005 0 / 0.75);
+  border: 1px solid oklch(0 0 0 / 0.08);
+  box-shadow:
+    0 4px 24px oklch(0 0 0 / 0.08),
+    inset 0 1px 0 oklch(1 0 0 / 0.5);
+}
+
+[data-theme="light"] .nerv-glass-3 {
+  background: oklch(0.99 0.005 0 / 0.85);
+  border: 1px solid oklch(0 0 0 / 0.10);
+  box-shadow:
+    0 8px 40px oklch(0 0 0 / 0.12),
+    0 2px 8px oklch(0 0 0 / 0.06),
+    inset 0 1px 0 oklch(1 0 0 / 0.8);
+}
+
+/* --- Accent Border Glow --- */
+
+.nerv-glow-border {
+  position: relative;
+}
+
+.nerv-glow-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg,
+      var(--glow-color, var(--accent-base)) 0%,
+      transparent 50%,
+      var(--glow-color, var(--accent-base)) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* --- Phase 5: War Room Atmosphere --- */
+.war-room-atmosphere {
+  position: relative;
+  overflow: hidden;
+}
+
+.war-room-atmosphere::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 20% 30%,
+      oklch(0.20 0.06 290 / 0.3),
+      /* subtle violet glow top-left */
+      transparent 70%),
+    radial-gradient(ellipse 500px 300px at 80% 70%,
+      oklch(0.18 0.04 195 / 0.2),
+      /* subtle teal glow bottom-right */
+      transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: war-room-breathe 8s ease-in-out infinite;
+}
+
+@keyframes war-room-breathe {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* --- Phase 5: Final Polish --- */
+
+.nerv-card-interactive {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.nerv-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px oklch(0 0 0 / 0.15);
+}
+
+.nerv-card-interactive:active {
+  transform: translateY(0px);
+}
+
+@keyframes nerv-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Match NERV global focus style */
+*:focus-visible {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── ReactFlow — Kill ALL default node chrome ─── */
+.react-flow__node {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.react-flow__node.selected,
+.react-flow__node:focus,
+.react-flow__node:focus-visible,
+.react-flow__node:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node>div,
+.react-flow__node.selected>div,
+.react-flow__node:focus>div,
+.react-flow__node:focus-visible>div {
+  outline: none !important;
+}
+
+.react-flow__nodesselection-rect,
+.react-flow__selection {
+  background: oklch(0.75 0.18 55 / 0.06) !important;
+  border: 1px solid oklch(0.75 0.18 55 / 0.3) !important;
+  border-radius: 8px !important;
+}
+
+/* ═══ GAMIFICATION TYPOGRAPHY & GLASS ═══ */
+.nerv-rank {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+.nerv-xp {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: var(--xp-text);
+}
+
+.nerv-mission-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.nerv-timer {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: var(--text-secondary);
+}
+
+.nerv-achievement-name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.nerv-power-score {
+  font-size: 36px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--accent-base), var(--xp-bar-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══ REFINED GLASS LEVELS ═══ */
+.nerv-glass-0 {
+  background: oklch(0.15 0.005 0 / 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.nerv-glass-agent-daisy {
+  background: oklch(0.14 0.015 135 / 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.78 0.17 135 / 0.1);
+}
+.nerv-glass-agent-ivy {
+  background: oklch(0.14 0.015 195 / 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.72 0.14 195 / 0.1);
+}
+.nerv-glass-agent-celia {
+  background: oklch(0.14 0.015 290 / 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.55 0.14 290 / 0.1);
+}
+.nerv-glass-agent-thalia {
+  background: oklch(0.14 0.015 25 / 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.65 0.19 25 / 0.1);
+}
+.nerv-glass-agent-zero {
+  background: oklch(0.14 0.015 232 / 0.65);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(0.55 0.15 232 / 0.1);
+}
+
+/* ═══ COMMAND CENTER GLASS PANEL ═══ */
+.cc-glass-panel {
+  background: rgba(8, 7, 6, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+}
+
+/* ═══ IDENTITY PANEL SCROLLBAR ═══ */
+.identity-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-base, #FF6D29) transparent;
+}
+
+.identity-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.identity-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.identity-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--accent-base, #FF6D29);
+  border-radius: 9999px;
+  opacity: 0.5;
+}
