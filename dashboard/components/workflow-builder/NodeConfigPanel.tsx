@@ -6,6 +6,7 @@ import { X, Trash2, RefreshCw } from "lucide-react";
 import { useWorkflowBuilderStore } from "@/store/useWorkflowBuilderStore";
 import { useAvailableAgents } from "@/hooks/useAvailableAgents";
 import { NODE_ACCENTS } from "./nodes/nodeStyles";
+import type { Node as RFNode } from "@xyflow/react";
 
 /**
  * Self-managing config panel — reads selectedNodeId + configPanelOpen
@@ -349,7 +350,7 @@ function AgentStepConfig({ data, update, agents }: { data: any; update: (k: stri
     );
 }
 
-function FormatterConfig({ data, update, incomingNodes }: { data: any; update: (k: string, v: any) => void; incomingNodes: Node[] }) {
+function FormatterConfig({ data, update, incomingNodes }: { data: any; update: (k: string, v: any) => void; incomingNodes: RFNode[] }) {
     const [selectedVar, setSelectedVar] = useState<string>("");
 
     const handleInsert = () => {
@@ -443,7 +444,7 @@ function FormatterConfig({ data, update, incomingNodes }: { data: any; update: (
     );
 }
 
-function ConditionConfigForm({ data, update, incomingNodes }: { data: any; update: (k: string, v: any) => void, incomingNodes: Node[] }) {
+function ConditionConfigForm({ data, update, incomingNodes }: { data: any; update: (k: string, v: any) => void, incomingNodes: RFNode[] }) {
     const handleUpdate = (field: string, val: string) => {
         update(field, val);
         const op = field === 'operator' ? val : (data.operator || '==');
