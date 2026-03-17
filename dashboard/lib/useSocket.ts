@@ -51,6 +51,7 @@ export interface ChatMessage {
     content: string;
     timestamp: string;
     agentId?: string;
+    sessionKey?: string;
     streaming?: boolean;
     tool_calls?: any[];
     attachments?: any[];
