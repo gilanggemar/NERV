@@ -32,7 +32,7 @@ export default function NodeConfigPanel() {
 
     // Incoming connections for Left Pane
     const incomingEdges = edges.filter((e) => e.target === selectedNodeId);
-    const incomingNodes = incomingEdges.map((e) => nodes.find(n => n.id === e.source)).filter(Boolean);
+    const incomingNodes = incomingEdges.map((e) => nodes.find(n => n.id === e.source)).filter((n): n is NonNullable<typeof n> => Boolean(n));
 
     const type = node.type || "unknown";
     const data = node.data as Record<string, any>;
