@@ -59,7 +59,7 @@ export const MissionBar: React.FC<MissionBarProps> = ({
     const addBtnRef = useRef<HTMLButtonElement>(null);
 
     // Auto-persist to API on change (debounced)
-    const persistTimeout = useRef<ReturnType<typeof setTimeout>>();
+    const persistTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
     const persistMission = useCallback((config: MissionConfig) => {
         if (!conversationId) return;
         clearTimeout(persistTimeout.current);
