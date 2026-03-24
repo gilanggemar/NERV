@@ -3,11 +3,14 @@
 import { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useCommandCenter } from '@/hooks/useCommandCenter';
-import { useAgentBackground } from '@/hooks/useAgentBackground';
+import { useAgentBackground, prefetchAgentBackground } from '@/hooks/useAgentBackground';
 import { useAgentDynamicColors } from '@/hooks/useImageDominantColor';
 import { AgentShowcase } from '@/components/command-center/AgentShowcase';
 import { AgentCarousel } from '@/components/command-center/AgentCarousel';
 import { AnimatePresence, motion } from 'framer-motion';
+import { prefetchAgentHero } from '@/hooks/useAgentHeroGallery';
+import { prefetchAgentAvatar } from '@/hooks/useAgentAvatar';
+import { useEffect } from 'react';
 
 
 const AtmosphereLayer = dynamic(
@@ -39,6 +42,17 @@ export default function OverviewPage() {
         setHeroPosition(position);
     }, []);
 
+    // Prefetch all agent assets so there are no loading flashes or stutters during transition
+    useEffect(() => {
+        if (availableAgents && availableAgents.length > 0) {
+            availableAgents.forEach(agent => {
+                prefetchAgentBackground(agent.id);
+                prefetchAgentHero(agent.id);
+                prefetchAgentAvatar(agent.id);
+            });
+        }
+    }, [availableAgents]);
+
     if (!isMounted) {
         return <div className="w-screen h-screen bg-black" />;
     }
@@ -47,7 +61,7 @@ export default function OverviewPage() {
         <div className="absolute inset-0 overflow-hidden text-white selection:bg-white/20">
 
             {/* Layer 0: Custom Background Image (desaturated + dimmed) */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
                 {backgroundUri && (
                     <motion.div
                         key={backgroundUri}
@@ -70,7 +84,7 @@ export default function OverviewPage() {
             <AtmosphereLayer colorHex={activeAgent?.colorHex || '#FF6B00'} />
 
             {/* Layer 2: Full-Screen Hero Image (above BG, behind cards) */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
                 {heroUri && (
                     <motion.div
                         key={heroUri}

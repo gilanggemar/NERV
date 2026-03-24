@@ -4,6 +4,23 @@ import { useEffect, useState, useCallback } from 'react';
 
 const bgCache: Record<string, string | null> = {};
 
+// Optional global map to ensure we only prefetch once per agent
+const prefetchInProgress: Record<string, boolean> = {};
+
+export async function prefetchAgentBackground(agentId: string) {
+    if (!agentId || bgCache[agentId] !== undefined || prefetchInProgress[agentId]) return;
+    prefetchInProgress[agentId] = true;
+    try {
+        const res = await fetch(`/api/agents/background?agentId=${agentId}`);
+        const data = await res.json();
+        bgCache[agentId] = data.backgroundImage || null;
+    } catch (err) {
+        console.error('Failed to prefetch background:', err);
+    } finally {
+        prefetchInProgress[agentId] = false;
+    }
+}
+
 export function useAgentBackground(agentId: string) {
     const [backgroundUri, setBackgroundUri] = useState<string | null>(bgCache[agentId] ?? null);
     const [isLoading, setIsLoading] = useState(false);

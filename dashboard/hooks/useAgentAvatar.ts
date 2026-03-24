@@ -4,6 +4,22 @@ import { useEffect, useState, useCallback } from 'react';
 
 const avatarCache: Record<string, string | null> = {};
 
+const prefetchInProgress: Record<string, boolean> = {};
+
+export async function prefetchAgentAvatar(agentId: string) {
+    if (!agentId || avatarCache[agentId] !== undefined || prefetchInProgress[agentId]) return;
+    prefetchInProgress[agentId] = true;
+    try {
+        const res = await fetch(`/api/agents/avatar?agentId=${agentId}`);
+        const data = await res.json();
+        avatarCache[agentId] = data?.avatar || null;
+    } catch (err) {
+        console.error('Failed to prefetch avatar:', err);
+    } finally {
+        prefetchInProgress[agentId] = false;
+    }
+}
+
 /**
  * Invalidate the avatar cache for a specific agent or all agents
  */

@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import {
     startOfWeek, addWeeks, subWeeks, format, addDays,
 } from 'date-fns';
+import { getGateway } from '@/lib/openclawGateway';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,33 @@ function computeDateRange(startDate: Date, weeks: number) {
     return { start, end };
 }
 
+function generateCron(
+    dateStr: string, timeStr: string | null,
+    recurType: string, recurInterval: number,
+    daysOfWeek: number[] | null
+): string {
+    const time = timeStr || '00:00';
+    const [hh, mm] = time.split(':');
+    const d = new Date(dateStr);
+    const dayOfMonth = d.getDate();
+    const month = d.getMonth() + 1;
+
+    switch (recurType) {
+        case 'hourly':
+            return `${parseInt(mm)} */${recurInterval} * * *`;
+        case 'daily':
+            return `${parseInt(mm)} ${parseInt(hh)} */${recurInterval} * *`;
+        case 'weekly':
+            const dowStr = (daysOfWeek && daysOfWeek.length > 0) ? daysOfWeek.join(',') : d.getDay();
+            return `${parseInt(mm)} ${parseInt(hh)} * * ${dowStr}`;
+        case 'monthly':
+            return `${parseInt(mm)} ${parseInt(hh)} ${dayOfMonth} */${recurInterval} *`;
+        case 'none':
+        default:
+            return `${parseInt(mm)} ${parseInt(hh)} ${dayOfMonth} ${month} *`;
+    }
+}
+
 // ─── Store ──────────────────────────────────────────────────────────────────
 
 export const useSchedulerStore = create<SchedulerState>((set, get) => ({
@@ -127,20 +155,34 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
                 set({ events: [], isLoading: false });
                 return;
             }
-            // Parse recurrenceDaysOfWeek from JSON string
-            const events = data.map((e: Record<string, unknown>) => ({
-                ...e,
-                recurrenceDaysOfWeek: e.recurrenceDaysOfWeek
-                    ? (typeof e.recurrenceDaysOfWeek === 'string'
-                        ? JSON.parse(e.recurrenceDaysOfWeek as string)
-                        : e.recurrenceDaysOfWeek)
+            // Map snake_case DB fields to camelCase store fields
+            const events = data.map((e: any) => ({
+                id: e.id,
+                taskId: e.task_id,
+                agentId: e.agent_id,
+                title: e.title,
+                description: e.description,
+                scheduledDate: e.scheduled_date,
+                scheduledTime: e.scheduled_time,
+                durationMinutes: e.duration_minutes ?? 60,
+                recurrenceType: e.recurrence_type ?? 'none',
+                recurrenceInterval: e.recurrence_interval ?? 1,
+                recurrenceEndDate: e.recurrence_end_date,
+                recurrenceDaysOfWeek: e.recurrence_days_of_week
+                    ? (typeof e.recurrence_days_of_week === 'string'
+                        ? JSON.parse(e.recurrence_days_of_week)
+                        : e.recurrence_days_of_week)
                     : null,
-                durationMinutes: e.durationMinutes ?? 60,
-                recurrenceInterval: e.recurrenceInterval ?? 1,
-                runCount: e.runCount ?? 0,
-                priority: e.priority ?? 'medium',
-                recurrenceType: e.recurrenceType ?? 'none',
                 status: e.status ?? 'scheduled',
+                lastRunAt: e.last_run_at,
+                nextRunAt: e.next_run_at,
+                runCount: e.run_count ?? 0,
+                color: e.color,
+                priority: e.priority ?? 'medium',
+                createdAt: e.created_at,
+                updatedAt: e.updated_at,
+                isVirtual: e.isVirtual,
+                virtualDate: e.virtualDate
             } as SchedulerEvent));
             set({ events, isLoading: false });
         } catch (e) {
@@ -161,6 +203,38 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
                 console.error('createEvent API error:', res.status, errBody);
                 throw new Error(errBody.details || errBody.error || 'Failed to create');
             }
+
+            // Sync with OpenClaw Cron backend ONLY for single-agent tasks
+            const gw = getGateway();
+            if (gw.isConnected && event.agentId) {
+                const cronExpr = generateCron(
+                    event.scheduledDate || '',
+                    event.scheduledTime || null,
+                    event.recurrenceType || 'none',
+                    event.recurrenceInterval || 1,
+                    event.recurrenceDaysOfWeek || null
+                );
+                
+                // Formulate an appropriate task prompt for the agent based on event details
+                const prompt = event.description 
+                    ? `Scheduled Task: ${event.title}\nDetails: ${event.description}` 
+                    : `Scheduled Task: ${event.title}`;
+
+                await gw.request('cron.add', {
+                    name: event.id || 'nerv-scheduled-task',
+                    sessionTarget: event.agentId,
+                    payload: { message: prompt },
+                    schedule: { cron: cronExpr }
+                }).then(cronRes => {
+                    console.log('[OpenClaw Scheduler] Transmitted cron job:', cronRes);
+                }).catch(err => {
+                    // Keep verbose logging to catch any remaining schema issues
+                    console.error('[OpenClaw Scheduler] Failed to add cron job:', 
+                        JSON.stringify(err, Object.getOwnPropertyNames(err), 2)
+                    );
+                });
+            }
+
             // Refetch
             const { viewStartDate, viewRangeWeeks, fetchEvents } = get();
             const { start, end } = computeDateRange(viewStartDate, viewRangeWeeks);

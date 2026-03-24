@@ -17,6 +17,24 @@ interface HeroGalleryState {
 
 const galleryCache: Record<string, HeroGalleryState> = {};
 
+const prefetchInProgress: Record<string, boolean> = {};
+
+export async function prefetchAgentHero(agentId: string) {
+    if (!agentId || galleryCache[agentId] !== undefined || prefetchInProgress[agentId]) return;
+    prefetchInProgress[agentId] = true;
+    try {
+        const res = await fetch(`/api/agents/hero?agentId=${agentId}`);
+        const data = await res.json();
+        if (data.images) {
+            galleryCache[agentId] = { images: data.images, activeIndex: data.activeIndex || 0 };
+        }
+    } catch (err) {
+        console.error('Failed to prefetch hero gallery:', err);
+    } finally {
+        prefetchInProgress[agentId] = false;
+    }
+}
+
 export function useAgentHeroGallery(agentId: string) {
     const [state, setState] = useState<HeroGalleryState>(
         galleryCache[agentId] || { images: [], activeIndex: 0 }

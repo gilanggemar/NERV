@@ -975,6 +975,7 @@ export function useSocket() {
                     role: m.role || 'user',
                     content: m.content ? (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)) : '',
                     timestamp: m.createdAt ? new Date(m.createdAt).toLocaleTimeString() : new Date().toLocaleTimeString(),
+                    _sortTime: m.createdAt ? new Date(m.createdAt).getTime() : Date.now(),
                     agentId: agentId,
                     sessionKey: sessionKey,
                     tool_calls: m.toolCalls || m.tool_calls
@@ -1087,7 +1088,7 @@ export function useSocket() {
     /**
      * Fan-out a message to multiple agents for the Summit.
      */
-    const sendSummitMessage = useCallback((agentIds: string[], contextMessage: string): void => {
+    const sendSummitMessage = useCallback((agentIds: string[], contextMessage: string, attachments?: any[]): void => {
         const gw = getGateway();
         if (!gw.isConnected) {
             addLog('⚠️ Cannot send summit — WebSocket not connected');
@@ -1120,9 +1121,24 @@ export function useSocket() {
             runIdToInputText.current.set(reqId, contextMessage);
             runIdToInputText.current.set(idempotencyKey, contextMessage);
 
+            const gatewayAttachments = attachments?.length ? attachments.map(a => {
+                let rawBase64 = a.url;
+                if (a.url && a.url.startsWith('data:')) {
+                    rawBase64 = a.url.split(',')[1] || a.url;
+                }
+                return {
+                    name: a.name,
+                    mimeType: a.type || a.mimeType,
+                    content: rawBase64,
+                    encoding: "base64",
+                    size: a.size
+                };
+            }) : undefined;
+
             gw.request('chat.send', {
                 sessionKey,
                 message: contextMessage,
+                attachments: gatewayAttachments,
                 idempotencyKey
             }).then((res) => {
                 const gatewayRunId = res?.runId;

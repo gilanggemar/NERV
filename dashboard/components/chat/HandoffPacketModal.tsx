@@ -92,7 +92,7 @@ export const HandoffPacketModal: React.FC<HandoffPacketModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
                 <DialogHeader>
                     <div className="flex items-center gap-2.5">
                         <Package className="w-4 h-4 text-primary" />
@@ -127,9 +127,10 @@ export const HandoffPacketModal: React.FC<HandoffPacketModalProps> = ({
                 </div>
 
                 {/* Content */}
-                <ScrollArea className="flex-1 -mx-6 px-6">
-                    {activeTab === 'brief' && (
-                        <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto min-h-0 -mx-6 px-6">
+                    <div className="pb-6">
+                        {activeTab === 'brief' && (
+                            <div className="space-y-4">
                             {sections.map((section, i) => (
                                 <div key={i} className="space-y-1.5">
                                     <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -202,10 +203,11 @@ export const HandoffPacketModal: React.FC<HandoffPacketModalProps> = ({
                             </div>
                         </div>
                     )}
-                </ScrollArea>
+                    </div>
+                </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between pt-3 border-t border-border">
+                <div className="flex shrink-0 items-center justify-between pt-4 pb-1 bg-background z-10 relative">
                     <Button
                         variant="ghost"
                         size="sm"

@@ -165,6 +165,9 @@ export default function SummitPage() {
     const router = useRouter();
     const { hiddenAgentIds } = useAgentSettingsStore();
 
+    const [showLeaveModal, setShowLeaveModal] = useState(false);
+    const [pendingNavUrl, setPendingNavUrl] = useState<string | null>(null);
+
     const [message, setMessage] = useState("");
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [autoDeliberate, setAutoDeliberate] = useState(false);
@@ -429,24 +432,32 @@ export default function SummitPage() {
         };
         window.addEventListener('beforeunload', handleBeforeUnload);
 
-        const originalPushState = history.pushState.bind(history);
-        const originalReplaceState = history.replaceState.bind(history);
-
-        history.pushState = function (...args: Parameters<typeof history.pushState>) {
-            if (window.confirm(warningMsg)) {
-                return originalPushState(...args);
+        // Intercept global link clicks
+        const handleAnchorClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const anchor = target.closest('a');
+            
+            if (anchor && anchor.href && anchor.origin === window.location.origin) {
+                // Ignore hash links on the same page
+                if (anchor.pathname === window.location.pathname) return;
+                
+                // Allow target=_blank as they open a new tab
+                if (anchor.target === '_blank') return;
+                
+                // It's an internal route change.
+                e.preventDefault();
+                e.stopPropagation();
+                
+                setPendingNavUrl(anchor.href);
+                setShowLeaveModal(true);
             }
         };
-        history.replaceState = function (...args: Parameters<typeof history.replaceState>) {
-            if (window.confirm(warningMsg)) {
-                return originalReplaceState(...args);
-            }
-        };
+        
+        document.addEventListener('click', handleAnchorClick, { capture: true });
 
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
-            history.pushState = originalPushState;
-            history.replaceState = originalReplaceState;
+            document.removeEventListener('click', handleAnchorClick, { capture: true });
         };
     }, [summitActive]);
 
@@ -598,7 +609,7 @@ export default function SummitPage() {
         let summaryBlock = '';
         if (olderMessages.length > 0) {
             const lines = olderMessages.map(m => {
-                const name = m.role === 'user' ? 'Operator' : getName(m.agentId);
+                const name = m.role === 'user' ? 'User' : getName(m.agentId);
                 const cleanMsg = stripTrailingTags(m.content);
                 const firstSentence = cleanMsg.split(/(?<=[.!?])\s/)[0] ?? cleanMsg;
                 return `${name}: ${firstSentence}`;
@@ -609,15 +620,15 @@ export default function SummitPage() {
         let recentBlock = '';
         if (recentMessages.length > 0) {
             const lines = recentMessages.map(m => {
-                const name = m.role === 'user' ? 'Operator' : getName(m.agentId);
+                const name = m.role === 'user' ? 'User' : getName(m.agentId);
                 return `[${name}]: ${stripTrailingTags(m.content)}`;
             });
             recentBlock = `\n<RECENT_LOG>\n${lines.join('\n')}\n</RECENT_LOG>`;
         }
 
         const roleDesc = hasTopic && isDeliberation
-            ? `You are ${currentAgentName}. Multi-agent deliberation with ${participantNames}. Operator is observing only — do NOT address the Operator.`
-            : `You are ${currentAgentName}. Group chat with ${participantNames} and the Operator (human).`;
+            ? `You are ${currentAgentName}. Multi-agent deliberation with ${participantNames}. The human User is in control of this summit and observing. DO NOT explicitly address them as "Operator" or constantly mention their authority.`
+            : `You are ${currentAgentName}. Group chat with ${participantNames} and the human User in control. DO NOT call the user "Operator".`;
 
         const driftRule = hasTopic && isDeliberation
             ? `RULE 3 (DRIFT PREVENTION): Strictly discuss direct implications of the TOPIC ANCHOR. Do NOT introduce absent agents, hypothetical scenarios, or unrelated tangents. If the previous speaker drifted, forcefully pivot back.`
@@ -634,7 +645,7 @@ export default function SummitPage() {
             `RULE 2 (TOPIC ANCHOR): The current immutable topic is: "${topicStr}"`,
             driftRule,
             refinementContext ? `RULE 4 (REFINEMENT CONTEXT): The <PRIOR_AGREEMENT> block contains a concatenated transcript of all previous statements. Read it silently to understand the full context of the debate so far.` : '',
-            customInstruction ? `RULE 5 (CUSTOM BEHAVIOR from Operator): ${customInstruction}\nAdhere strictly to this behavior instruction during this session.` : '',
+            customInstruction ? `RULE 5 (CUSTOM BEHAVIOR from User): ${customInstruction}\nAdhere strictly to this behavior instruction during this session.` : '',
             missionPrompt || '',
             strategyPrompt || '',
             `</SYSTEM_DIRECTIVE>`,
@@ -647,12 +658,12 @@ export default function SummitPage() {
 
         const lastNonSelf = [...recentMessages].reverse().find(m => m.agentId !== forAgent);
         const lastSpeakerName = lastNonSelf
-            ? (lastNonSelf.role === 'user' ? 'Operator' : getName(lastNonSelf.agentId))
+            ? (lastNonSelf.role === 'user' ? 'User' : getName(lastNonSelf.agentId))
             : null;
 
         let turnAction: string;
         if (newUserText) {
-            turnAction = `The Operator just said: "${newUserText}"\nAction: Respond to the Operator, adhering to the SYSTEM_DIRECTIVE.`;
+            turnAction = `The User just said: "${newUserText}"\nAction: Respond to the User, adhering to the SYSTEM_DIRECTIVE.`;
         } else if (refinementContext) {
             turnAction = `Action: Review the <PRIOR_AGREEMENT>. If there are unresolved conflicts, continue the debate to reach a unified agreement. If an agreement has already been made, briefly confirm the consensus and outline the final stance. IMPORTANT: You must adhere strictly to RULE 1 (1-3 short sentences). DO NOT output a long summary paragraph.`;
         } else if (lastSpeakerName) {
@@ -666,13 +677,13 @@ export default function SummitPage() {
         return `${systemDirective}${refinementBlock}${summaryBlock}${recentBlock}${yourTurn}`;
     }, [summitMessages, summitParticipants, deliberationRound, summitTopic, refinementContext, findAgent, missionConfig, strategyMode]);
 
-    const startSequentialRound = useCallback((agents: string[], userText?: string) => {
+    const startSequentialRound = useCallback((agents: string[], userText?: string, attachments?: any[]) => {
         if (agents.length === 0) return;
         const [first, ...rest] = agents;
         setCurrentSpeaker(first);
         setSpeakerQueue(rest);
         speakerStreamStartedRef.current = false;
-        sendSummitMessage([first], buildContextMessage(userText, first));
+        sendSummitMessage([first], buildContextMessage(userText, first), attachments);
     }, [sendSummitMessage, buildContextMessage]);
 
     const handleSend = useCallback(async (e?: React.FormEvent) => {
@@ -741,10 +752,11 @@ export default function SummitPage() {
         incrementSummitRound();
 
         // If a specific agent is tagged via @mention, only send to that agent
+        const attachmentsToSend = base64Attachments.length > 0 ? base64Attachments : undefined;
         if (taggedAgentId && summitParticipants.includes(taggedAgentId)) {
-            startSequentialRound([taggedAgentId], injectedText);
+            startSequentialRound([taggedAgentId], injectedText, attachmentsToSend);
         } else {
-            startSequentialRound(summitParticipants, injectedText);
+            startSequentialRound(summitParticipants, injectedText, attachmentsToSend);
         }
         setTaggedAgentId(null);
     }, [message, summitActive, isConnected, summitParticipants, summitRound, roundInFlight, addSummitMessage, incrementSummitRound, startSequentialRound, chunks, quotedReply, missionConfig, strategyMode, pendingFiles, taggedAgentId, agentContextMap]);
@@ -785,7 +797,7 @@ export default function SummitPage() {
                 setSpeakerQueue(rest);
                 speakerStreamStartedRef.current = false;
                 sendSummitMessage([next], buildContextMessage(undefined, next));
-            }, 600);
+            }, 50);
         } else {
             setCurrentSpeaker(null);
         }
@@ -834,7 +846,7 @@ export default function SummitPage() {
         if (autoDeliberate && !roundInFlight && streamingCount === 0 && assistantMsgCount > 0 && deliberationRound < maxRounds && summitActive) {
             autoDelibTimerRef.current = setTimeout(() => {
                 handleContinue();
-            }, 2500);
+            }, 1000);
         }
 
         return () => {
@@ -977,7 +989,13 @@ export default function SummitPage() {
             )}
 
             {/* Main Area */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div 
+                className="flex-1 flex flex-col min-w-0"
+                onDragOver={handleDragOverFiles} 
+                onDragLeave={handleDragLeaveFiles} 
+                onDrop={handleDropFiles} 
+                onPaste={handlePasteFiles}
+            >
                 {/* Header Toolbar */}
                 <div className="flex-shrink-0">
                     <div className="flex items-center justify-between px-0 pb-3">
@@ -1070,7 +1088,7 @@ export default function SummitPage() {
                 </div>
 
                 {/* Messages Area + Timeline */}
-                <div className="flex-1 min-h-0 flex relative" onDragOver={handleDragOverFiles} onDragLeave={handleDragLeaveFiles} onDrop={handleDropFiles} onPaste={handlePasteFiles}>
+                <div className="flex-1 min-h-0 flex relative">
                     {isDraggingOver && (
                         <div className="absolute inset-0 z-50 m-2 rounded-2xl border-2 border-dashed border-orange-500/50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none transition-all">
                             <div className="p-4 rounded-full bg-orange-500/10 mb-2"><IconPaperclip className="w-8 h-8 text-orange-500" /></div>
@@ -1173,10 +1191,10 @@ export default function SummitPage() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="group/msg relative w-fit max-w-[85%]">
+                                            <div className="group/msg relative w-fit max-w-[85%] min-w-0 break-words">
                                                 {/* Tool calls (agent only) */}
                                                 {!isUser && msg.tool_calls && msg.tool_calls.length > 0 && (
-                                                    <div className="flex flex-col gap-2 mb-2 w-full">
+                                                    <div className="flex flex-col gap-2 mb-2 w-full min-w-0">
                                                         {msg.tool_calls.map((tc: any, tcIdx: number) => {
                                                             let argsDisplay = tc.function?.arguments || JSON.stringify(tc);
                                                             try {
@@ -1187,7 +1205,7 @@ export default function SummitPage() {
                                                             const isError = status === 'failed';
                                                             const inProgress = status === 'in_progress';
                                                             return (
-                                                                <div key={tcIdx} className={cn("bg-accent border rounded-xl p-3 w-full text-sm mt-1", isError ? "border-red-500/30" : "border-border")}>
+                                                                <div key={tcIdx} className={cn("bg-accent border rounded-xl p-3 w-full text-sm mt-1 min-w-0", isError ? "border-red-500/30" : "border-border")}>
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <div className="flex items-center gap-2 text-foreground text-xs font-medium">
                                                                             {inProgress ? <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" /> : <Puzzle className={cn("w-3.5 h-3.5", isError ? "text-red-400" : "text-muted-foreground")} />}
@@ -1211,7 +1229,7 @@ export default function SummitPage() {
 
                                                 {/* Message bubble */}
                                                 <div className={cn(
-                                                    "px-[12px] py-[6px] text-[13px] leading-relaxed min-w-[80px] w-fit flex flex-col gap-2",
+                                                    "px-[12px] py-[6px] text-[13px] leading-relaxed min-w-[80px] w-fit flex flex-col gap-2 min-w-0",
                                                     isUser
                                                         ? "bg-accent text-foreground"
                                                         : "bg-orange-500/35 text-white border border-orange-500/40",
@@ -1219,21 +1237,21 @@ export default function SummitPage() {
                                                 )}>
                                                     {/* Attachments */}
                                                     {(msg as any).attachments && (msg as any).attachments.length > 0 && (
-                                                        <div className="flex flex-wrap gap-2">
+                                                        <div className="flex flex-wrap gap-2 min-w-0">
                                                             {(msg as any).attachments.map((att: any, i: number) => (
                                                                 att.type?.startsWith('image/') ? (
                                                                     <img key={i} src={att.url || att} alt="attachment" className="max-w-[200px] max-h-[200px] rounded-md object-contain border border-border/50" />
                                                                 ) : (
-                                                                    <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-background/50 border border-border/50 text-xs text-foreground">
-                                                                        <FileText className="w-4 h-4" /><span className="truncate max-w-[150px]">{att.name || 'Document'}</span>
+                                                                    <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-background/50 border border-border/50 text-xs text-foreground min-w-0">
+                                                                        <FileText className="w-4 h-4 shrink-0" /><span className="truncate max-w-[150px]">{att.name || 'Document'}</span>
                                                                     </div>
                                                                 )
                                                             ))}
                                                         </div>
                                                     )}
-                                                    <div className="flex items-end gap-1">
+                                                    <div className="flex items-end gap-1 min-w-0 w-full overflow-hidden">
                                                         {renderSummitMessageContent(msg.content)}
-                                                        {msg.streaming && <Loader2 className="inline-block w-3 h-3 ml-1 text-muted-foreground animate-spin" />}
+                                                        {msg.streaming && <Loader2 className="shrink-0 inline-block w-3 h-3 ml-1 text-muted-foreground animate-spin" />}
                                                     </div>
                                                     {/* Mode indicators */}
                                                     {isUser && (() => {
@@ -1967,6 +1985,37 @@ export default function SummitPage() {
                         <div className="p-4 border-t flex justify-end" style={{ borderColor: 'var(--nerv-border-default)', background: 'var(--nerv-surface-3)' }}>
                             <Button onClick={() => setShowTopicModal(false)} className="bg-orange-500 text-white hover:bg-orange-600 rounded-lg h-9 px-6 text-xs">
                                 Apply & Close
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showLeaveModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-[#121212] border border-[#2A2A2A] rounded-xl max-w-md w-full p-6 shadow-2xl relative">
+                        <h2 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-orange-500" />
+                            Leave Summit?
+                        </h2>
+                        <p className="text-[13px] text-zinc-400 mb-6 leading-relaxed">
+                            The Summit is in progress. Leaving now will stop the deliberation and any unsaved results will be lost. Are you sure you want to leave?
+                        </p>
+                        <div className="flex items-center justify-end gap-3">
+                            <Button variant="ghost" className="text-zinc-400 hover:text-white hover:bg-white/5 active:bg-white/10" onClick={() => {
+                                setShowLeaveModal(false);
+                                setPendingNavUrl(null);
+                            }}>
+                                Cancel
+                            </Button>
+                            <Button className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white shadow-md shadow-orange-500/20" onClick={() => {
+                                setSummitActive(false);
+                                setShowLeaveModal(false);
+                                if (pendingNavUrl) {
+                                    router.push(pendingNavUrl);
+                                }
+                            }}>
+                                Leave Page
                             </Button>
                         </div>
                     </div>

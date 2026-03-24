@@ -10,13 +10,14 @@ import {
     Bot, User, Loader2, MessageSquare, Activity, Terminal as TerminalIcon,
     Wifi, WifiOff, ArrowDown, PanelLeftOpen, PanelLeftClose, ArrowUpRight,
     FileText, Image as ImageIcon, X as XIcon, Package, Check, Pencil,
-    Target, Shield, Compass, Copy
+    Target, Shield, Compass, Copy, Square, Brain, MessageSquareText, GitMerge
 } from "lucide-react";
 import {
     IconPlus, IconPaperclip, IconCode, IconWorld, IconHistory,
     IconWand, IconSend, IconChevronDown
 } from "@tabler/icons-react";
 import { MessageRenderer } from "@/components/chat/MessageRenderer";
+import { getGateway } from "@/lib/openclawGateway";
 
 import { AgentAvatar } from "@/components/agents/AgentAvatar";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ import { NextBestActionChip } from "@/components/chat/NextBestActionChip";
 import { HandoffPacketModal } from "@/components/chat/HandoffPacketModal";
 import { ProjectPanel } from "@/components/chat/ProjectPanel";
 import { useProjectStore } from "@/store/useProjectStore";
+import { SessionConfigDropdowns } from "@/components/chat/SessionConfigDropdowns";
 
 /* ─── Message Content Renderer (Clean Text Only) ─── */
 const renderMessageContent = (content: string) => {
@@ -179,12 +181,28 @@ export default function ChatPage() {
             const sk = `agent:${selectedAgentId}:nchat`;
             setChatMessages([], sk);
             useOpenClawStore.getState().clearRunsForSession(sk);
+            
+            const gw = getGateway();
+            if (gw.isConnected) {
+                gw.request('chat.inject', {
+                    sessionKey: sk,
+                    message: `[SYSTEM DIRECTIVE: User has switched to Chat Workspace ID: ${activeConversationId}]`
+                }).catch(err => console.error('[Handoff Context Switch]', JSON.stringify(err, null, 2)));
+            }
         } else if (!activeConversationId) {
             const sk = `agent:${selectedAgentId}:nchat`;
             setChatMessages([], sk);
             useOpenClawStore.getState().clearRunsForSession(sk);
             setDbMessages([]);
             setStoreActiveConversation(null); // Clear storeConvoId so returning to this conversation triggers fetch
+
+            const gw = getGateway();
+            if (gw.isConnected) {
+                gw.request('chat.inject', {
+                    sessionKey: sk,
+                    message: `[SYSTEM DIRECTIVE: User has closed the prior chat workspace and is currently in an uninitialized workspace.]`
+                }).catch(err => console.error('[Handoff Context Clear]', JSON.stringify(err, null, 2)));
+            }
         }
     }, [activeConversationId, storeConvoId, fetchMessages, setChatMessages, setDbMessages, setStoreActiveConversation, selectedAgentId]);
     const [displayLimit, setDisplayLimit] = useState(10);
@@ -217,6 +235,9 @@ export default function ChatPage() {
         goalLocked: false,
         constraints: [],
     });
+
+    const [activeSessionConfigs, setActiveSessionConfigs] = useState<{ thinking: boolean, verbose: boolean, reasoning: boolean }>({ thinking: false, verbose: false, reasoning: false });
+    const [autoOpenConfig, setAutoOpenConfig] = useState<'thinking' | 'verbose' | 'reasoning' | null>(null);
     const [pendingFiles, setPendingFiles] = useState<{ file: File; previewUrl?: string }[]>([]);
     const [quotedReply, setQuotedReply] = useState<{ text: string; messageId?: string } | null>(null);
     const [strategyMode, setStrategyMode] = useState<StrategyMode>('off');
@@ -392,11 +413,16 @@ export default function ChatPage() {
         if (!activeConversationId) return;
 
         for (const msg of filteredMessages) {
+            const rawContent = (msg.content || '').trim();
+            // Do not persist background LLM Handoff Extractions
+            if (msg.role === 'assistant' && /^\s*\{\s*"sections"\s*:/i.test(rawContent)) {
+                continue;
+            }
+
             if (
                 msg.role === 'assistant' &&
                 msg.streaming === false &&
-                msg.content &&
-                msg.content.trim() &&
+                rawContent &&
                 !persistedMsgIds.current.has(msg.id)
             ) {
                 // If text is still changing (react hooks refiring), we clear and restart the timeout
@@ -459,14 +485,52 @@ export default function ChatPage() {
             // Also use sequence_number if available for sub-second ordering
             hydrated._seqNum = hydrated.sequence_number ?? 0;
             return hydrated;
+        }).filter(m => {
+            // Scrub accidentally saved Handoff Packet JSONs from legacy UI loads
+            const rawContent = (m.content || '').trim();
+            if (m.role === 'assistant' && /^\s*\{\s*"sections"\s*:/i.test(rawContent)) {
+                return false;
+            }
+            return true;
         });
 
         const merged = [...hydratedDb];
         const dbIds = new Set(hydratedDb.map(m => String(m.id)));
+        const dbContents = new Set(hydratedDb.map(m => (m.content || '').trim().toLowerCase()).filter(Boolean));
+
         for (const m of filteredMessages) {
+             let rawContent = (m.content || '').trim();
+             
+             // Strip out injected background System Directives so they don't visually bleed into the UI
+             rawContent = rawContent.replace(/^\[SYSTEM DIRECTIVE[^\]]*\]\s*([^]*)/i, (match, rest) => {
+                 // The regex matches the directive and leading spaces/newlines.
+                 // If the directive was followed by "User is currently talking in Chat Workspace ID: <id>\n\n",
+                 // we want to strip that specific string too.
+                 const prefixStrip = rest.replace(/^User is currently talking in Chat Workspace ID: [a-zA-Z0-9-]+\s*/i, '');
+                 return prefixStrip;
+             }).trim();
+
+             // If the message is completely empty after stripping (e.g. it was just the pure context ping), skip rendering
+             if (!rawContent && (!m.tool_calls || m.tool_calls.length === 0)) {
+                 continue;
+             }
+
+             // Hide background extraction runs (Handoff JSON generation) from bleeding into the visual UI
+             if (m.role === 'assistant' && /^\s*\{\s*"sections"\s*:/i.test(rawContent)) {
+                 continue;
+             }
+
              if (!dbIds.has(String(m.id))) {
+                 const lowerContent = rawContent.toLowerCase();
+                 
+                 // Strict Deduplication: if the exact cleaned text already exists in our Supabase history,
+                 // and this isn't an actively streaming message, skip rendering this redundant gateway payload.
+                 if (dbContents.has(lowerContent) && m.streaming !== true) {
+                     continue;
+                 }
+
                  // Live messages: use _sortTime if set during optimistic add, otherwise use Date.now()
-                 const liveMsg = { ...m } as any;
+                 const liveMsg = { ...m, content: rawContent } as any;
                  if (!liveMsg._sortTime) {
                      liveMsg._sortTime = Date.now();
                  }
@@ -571,6 +635,11 @@ export default function ChatPage() {
         const projectContext = useProjectStore.getState().getProjectContext();
         if (projectContext) {
             finalMessage = `${projectContext}${finalMessage}`;
+        }
+
+        // Inject NERV specific context to tag memory correctly in global nchat
+        if (capturedConvoId) {
+            finalMessage = `[SYSTEM DIRECTIVE — WORKSPACE CONTEXT]\nUser is currently talking in Chat Workspace ID: ${capturedConvoId}\n\n${finalMessage}`;
         }
 
         const strategyPrefix = getStrategySystemPrompt(capturedStrategyMode);
@@ -1266,7 +1335,7 @@ export default function ChatPage() {
                                     </form>
                                 </div>
 
-                                <div className="mb-2 px-2 flex items-center justify-between">
+                                <div className="mb-[5px] px-2 flex items-center justify-between">
                                     <div className="flex items-center gap-1">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -1287,20 +1356,35 @@ export default function ChatPage() {
                                                         <IconPaperclip size={16} className="opacity-60" />
                                                         Attach Files
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="rounded-[calc(1rem-6px)] text-xs">
-                                                        <IconCode size={16} className="opacity-60" />
-                                                        Code Interpreter
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="rounded-[calc(1rem-6px)] text-xs">
-                                                        <IconWorld size={16} className="opacity-60" />
-                                                        Web Search
+                                                    <DropdownMenuItem
+                                                        className="rounded-[calc(1rem-6px)] text-xs"
+                                                        onClick={() => {
+                                                            setActiveSessionConfigs(prev => ({ ...prev, thinking: true }));
+                                                            setAutoOpenConfig('thinking');
+                                                        }}
+                                                    >
+                                                        <Brain size={16} className="opacity-60" />
+                                                        Thinking Mode
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         className="rounded-[calc(1rem-6px)] text-xs"
-                                                        onClick={() => setShowSidebar(true)}
+                                                        onClick={() => {
+                                                            setActiveSessionConfigs(prev => ({ ...prev, verbose: true }));
+                                                            setAutoOpenConfig('verbose');
+                                                        }}
                                                     >
-                                                        <IconHistory size={16} className="opacity-60" />
-                                                        Chat History
+                                                        <MessageSquareText size={16} className="opacity-60" />
+                                                        Verbose Output
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="rounded-[calc(1rem-6px)] text-xs"
+                                                        onClick={() => {
+                                                            setActiveSessionConfigs(prev => ({ ...prev, reasoning: true }));
+                                                            setAutoOpenConfig('reasoning');
+                                                        }}
+                                                    >
+                                                        <GitMerge size={16} className="opacity-60" />
+                                                        Reasoning Config
                                                     </DropdownMenuItem>
                                                 </DropdownMenuGroup>
                                             </DropdownMenuContent>
@@ -1311,7 +1395,16 @@ export default function ChatPage() {
                                             activeMode={strategyMode}
                                             onModeChange={setStrategyMode}
                                         />
-                                        <div className="ml-1 w-px h-4 bg-border" />
+                                        {Object.values(activeSessionConfigs).some(Boolean) && (
+                                            <div className="ml-1 w-px h-4 bg-border" />
+                                        )}
+                                        <SessionConfigDropdowns 
+                                            sessionKey={`agent:${selectedAgentId}:nchat`}
+                                            activeConfigs={activeSessionConfigs}
+                                            onCloseConfig={(key) => setActiveSessionConfigs(prev => ({ ...prev, [key]: false }))}
+                                            autoOpenConfig={autoOpenConfig}
+                                        />
+                                        <div className="ml-[5px] w-px h-4 bg-border" />
                                         <PromptChunkTray />
                                     </div>
 
@@ -1390,6 +1483,70 @@ export default function ChatPage() {
                 conversationTitle={`Chat with ${selectedAgentName}`}
                 agentName={selectedAgentName}
                 messageCount={visibleMessages.length}
+                onGenerate={async () => {
+                    const resolvedConvoId = activeConversationId || storeConvoId;
+                    const sk = `agent:${selectedAgentId}:nchat`;
+                    const prompt = `[SYSTEM DIRECTIVE — HANDOFF PROTOCOL]
+Please analyze ONLY the conversation that occurred strictly within "Chat Workspace ID: ${resolvedConvoId}". You MUST ignore all context, messages, and memories from previous or unrelated workspaces. Generate a structured Executive Handoff Packet for this specific workspace. 
+Do not include markdown wrappers like \`\`\`json, just return raw JSON strictly matching this schema:
+{
+  "sections": [
+    { "title": "Executive Summary", "content": "..." },
+    { "title": "Key Decisions Made", "content": "..." },
+    { "title": "Open Questions", "content": "..." },
+    { "title": "Next Steps", "content": "..." }
+  ],
+  "readiness": [
+    { "label": "Context Completeness", "status": "ready" }
+  ]
+}
+Note: For readiness status, only use "ready", "warning", or "blocked".`;
+
+                    return new Promise(async (resolve) => {
+                        const gw = getGateway();
+                        if (gw.isConnected) {
+                            try {
+                                console.log("[Handoff] Dispatching request. Agent replying in chat stream...");
+                                const res = await gw.request('chat.send', {
+                                    sessionKey: sk,
+                                    message: prompt,
+                                    idempotencyKey: `handoff-${Date.now()}`
+                                });
+
+                                if (res && res.runId) {
+                                    const checkInterval = setInterval(() => {
+                                        const msgs = useSocketStore.getState().chatMessages;
+                                        const targetMsg = msgs.find(m => m.id === `reply-${res.runId}`);
+                                        
+                                        if (targetMsg && !targetMsg.streaming) {
+                                            clearInterval(checkInterval);
+                                            try {
+                                                const jsonMatch = targetMsg.content.match(/\{[\s\S]*\}/);
+                                                if (jsonMatch) {
+                                                    const parsed = JSON.parse(jsonMatch[0]);
+                                                    resolve({
+                                                        sections: parsed.sections || [],
+                                                        readiness: parsed.readiness || []
+                                                    });
+                                                } else {
+                                                    console.warn("[Handoff] Failed to parse JSON from agent");
+                                                    resolve({ sections: [], readiness: [] });
+                                                }
+                                            } catch (e) {
+                                                console.error("[Handoff Parse Error]", e);
+                                                resolve({ sections: [], readiness: [] });
+                                            }
+                                        }
+                                    }, 500);
+                                    return; // prevent fallback resolution
+                                }
+                            } catch (err) {
+                                console.error("[Handoff Gen Error]", err);
+                            }
+                        }
+                        resolve({ sections: [], readiness: [] });
+                    });
+                }}
             />
         </div>
     );

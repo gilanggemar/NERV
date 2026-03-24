@@ -31,25 +31,38 @@ interface AgentShowcaseProps {
     dynamicColors?: DynamicColors;
 }
 
-const columnVariants = {
-    initial: { opacity: 0, y: 20, filter: 'blur(8px)' },
+const heavyVariants = {
+    initial: { opacity: 0, filter: 'blur(8px)' },
     animate: { 
         opacity: 1, 
-        y: 0, 
         filter: 'blur(0px)',
         transitionEnd: { 
             filter: 'none', 
-            WebkitFilter: 'none',
-            transform: 'none'
+            WebkitFilter: 'none'
         }
     },
-    exit: { opacity: 0, y: -10, filter: 'blur(8px)' },
+    exit: { 
+        opacity: 0, 
+        filter: 'blur(8px)'
+    },
 };
 
-const transition = (delay: number) => ({
-    duration: 0.6,
+const heavyTransition = (delay: number) => ({
+    duration: 0.8,
     delay,
     ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+});
+
+const lightVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+};
+
+const lightTransition = (delay: number) => ({
+    duration: 0.5,
+    delay,
+    ease: [0.25, 1, 0.5, 1] as [number, number, number, number],
 });
 
 export function AgentShowcase({ agentProfile, level, currentXp, xpToNext, rank, currentStreak, onBackgroundChanged, onHeroChanged, availableAgents, onSelectAgent, dynamicColors }: AgentShowcaseProps) {
@@ -118,52 +131,52 @@ export function AgentShowcase({ agentProfile, level, currentXp, xpToNext, rank, 
                 />
             </div>
 
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
                 <motion.div
                     key={agentProfile.id}
-                    className="flex w-full h-full overflow-hidden relative z-20"
+                    className="flex w-full h-full overflow-hidden absolute inset-0 z-20"
                     initial="initial"
                     animate="animate"
                     exit="exit"
                 >
                     {/* LEFT COLUMN — Identity + Meta + Carousel */}
-                    <motion.div
+                    <div
                         className="w-[500px] flex-shrink-0 pointer-events-auto z-30 pl-10 pr-[160px] py-10 flex flex-col pt-16 overflow-visible"
-                        variants={columnVariants}
-                        transition={transition(0)}
                     >
-                        <AgentIdentityPlate
-                            agent={agentProfile}
-                            level={level}
-                            currentXp={currentXp}
-                            xpToNext={xpToNext}
-                            rank={rank}
-                            currentStreak={currentStreak}
-                            avatarUri={avatarUri}
-                        />
+                        <motion.div variants={heavyVariants} transition={heavyTransition(0)}>
+                            <AgentIdentityPlate
+                                agent={agentProfile}
+                                level={level}
+                                currentXp={currentXp}
+                                xpToNext={xpToNext}
+                                rank={rank}
+                                currentStreak={currentStreak}
+                                avatarUri={avatarUri}
+                            />
+                        </motion.div>
 
-                        <div className="mt-10">
+                        <motion.div variants={lightVariants} transition={lightTransition(0.05)} className="mt-10">
                             <AgentModelSelector agentId={agentProfile.id} colorHex={agentProfile.colorHex} />
-                        </div>
+                        </motion.div>
 
-                        <div className="mt-8 flex-1 min-h-0 p-4 rounded-xl border transition-colors duration-500" style={{ background: dynamicColors?.containerBg || 'rgba(0,0,0,0.6)', borderColor: dynamicColors?.containerBorder || 'rgba(255,255,255,0.05)', boxShadow: dynamicColors?.containerShadow || '0 8px 32px rgba(0,0,0,0.5)' }}>
+                        <motion.div variants={lightVariants} transition={lightTransition(0.1)} className="mt-8 flex-1 min-h-0 p-4 rounded-xl border transition-colors duration-500" style={{ background: dynamicColors?.containerBg || 'rgba(0,0,0,0.6)', borderColor: dynamicColors?.containerBorder || 'rgba(255,255,255,0.05)', boxShadow: dynamicColors?.containerShadow || '0 8px 32px rgba(0,0,0,0.5)' }}>
                             <AgentCarousel
                                 activeAgentId={agentProfile.id}
                                 availableAgents={availableAgents}
                                 onSelectAgent={onSelectAgent}
                             />
-                        </div>
-                    </motion.div>                    {/* CENTER — Empty spacer for layout */}
-                    <motion.div
+                        </motion.div>
+                    </div>                    {/* CENTER — Empty spacer for layout */}
+                    <div
                         className="flex-1 min-w-0 h-full pointer-events-none z-10 relative"
                         style={{ background: 'transparent' }}
-                        variants={columnVariants}
-                        transition={transition(0.08)}
                     />
 
                     {/* FREE FLOATING UI: Arrows & Portait Upload */}
                     {hasMultiple && (
-                        <button
+                        <motion.button
+                            variants={lightVariants}
+                            transition={lightTransition(0.2)}
                             onClick={prev}
                             className="absolute left-[440px] top-1/2 -translate-y-1/2 z-40 pointer-events-auto
                                 w-12 h-12 rounded-full flex items-center justify-center
@@ -173,11 +186,13 @@ export function AgentShowcase({ agentProfile, level, currentXp, xpToNext, rank, 
                             style={{ background: dynamicColors?.containerBg || 'rgba(0,0,0,0.6)', borderColor: dynamicColors?.containerBorder || 'rgba(255,255,255,0.1)', boxShadow: dynamicColors?.containerShadow || '0 4px 12px rgba(0,0,0,0.5)' }}
                         >
                             <ChevronLeft size={24} />
-                        </button>
+                        </motion.button>
                     )}
 
                     {hasMultiple && (
-                        <button
+                        <motion.button
+                            variants={lightVariants}
+                            transition={lightTransition(0.2)}
                             onClick={next}
                             className="absolute right-[440px] top-1/2 -translate-y-1/2 z-40 pointer-events-auto
                                 w-12 h-12 rounded-full flex items-center justify-center
@@ -187,7 +202,7 @@ export function AgentShowcase({ agentProfile, level, currentXp, xpToNext, rank, 
                             style={{ background: dynamicColors?.containerBg || 'rgba(0,0,0,0.6)', borderColor: dynamicColors?.containerBorder || 'rgba(255,255,255,0.1)', boxShadow: dynamicColors?.containerShadow || '0 4px 12px rgba(0,0,0,0.5)' }}
                         >
                             <ChevronRight size={24} />
-                        </button>
+                        </motion.button>
                     )}
 
                     <HeroImageUpload
@@ -205,8 +220,8 @@ export function AgentShowcase({ agentProfile, level, currentXp, xpToNext, rank, 
                     {/* RIGHT COLUMN — Initiate + Stats + Capabilities */}
                     <motion.div
                         className="w-[480px] flex-shrink-0 pointer-events-auto z-30 pr-12 pl-[160px] pb-10 flex flex-col pt-16"
-                        variants={columnVariants}
-                        transition={transition(0.16)}
+                        variants={lightVariants}
+                        transition={lightTransition(0.15)}
                     >
                         {/* Initiate Button */}
                         <button

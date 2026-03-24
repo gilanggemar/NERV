@@ -92,7 +92,9 @@ function CodeBlock({ className, children, ...props }: any) {
                     margin: 0,
                     padding: '14px 16px',
                     background: 'var(--bg-base)',
-                    overflow: 'auto',
+                    overflowX: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
                     fontSize: '13px',
                     lineHeight: '1.6',
                     fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
@@ -112,7 +114,7 @@ interface MessageRendererProps {
 
 export const MessageRenderer = React.memo(function MessageRenderer({ content }: MessageRendererProps) {
     return (
-        <div className="message-content">
+        <div className="message-content w-full min-w-0 break-words">
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight, rehypeSanitize]}
