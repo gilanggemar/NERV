@@ -183,11 +183,11 @@ export default function ChatPage() {
             useOpenClawStore.getState().clearRunsForSession(sk);
             
             const gw = getGateway();
-            if (gw.isConnected) {
+            if (gw.isConnected && selectedAgentId) {
                 gw.request('chat.inject', {
                     sessionKey: sk,
                     message: `[SYSTEM DIRECTIVE: User has switched to Chat Workspace ID: ${activeConversationId}]`
-                }).catch(err => console.error('[Handoff Context Switch]', JSON.stringify(err, null, 2)));
+                }).catch(() => { /* session may not exist yet — safe to ignore */ });
             }
         } else if (!activeConversationId) {
             const sk = `agent:${selectedAgentId}:nchat`;
@@ -197,11 +197,11 @@ export default function ChatPage() {
             setStoreActiveConversation(null); // Clear storeConvoId so returning to this conversation triggers fetch
 
             const gw = getGateway();
-            if (gw.isConnected) {
+            if (gw.isConnected && selectedAgentId) {
                 gw.request('chat.inject', {
                     sessionKey: sk,
                     message: `[SYSTEM DIRECTIVE: User has closed the prior chat workspace and is currently in an uninitialized workspace.]`
-                }).catch(err => console.error('[Handoff Context Clear]', JSON.stringify(err, null, 2)));
+                }).catch(() => { /* session may not exist yet — safe to ignore */ });
             }
         }
     }, [activeConversationId, storeConvoId, fetchMessages, setChatMessages, setDbMessages, setStoreActiveConversation, selectedAgentId]);

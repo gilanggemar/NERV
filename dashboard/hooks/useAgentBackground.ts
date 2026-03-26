@@ -44,8 +44,11 @@ export function useAgentBackground(agentId: string) {
     useEffect(() => {
         if (bgCache[agentId] !== undefined) {
             setBackgroundUri(bgCache[agentId]);
+        } else {
+            // Immediately clear so the old agent's image doesn't linger
+            setBackgroundUri(null);
+            fetchBackground();
         }
-        fetchBackground();
     }, [agentId, fetchBackground]);
 
     const invalidate = useCallback(() => {

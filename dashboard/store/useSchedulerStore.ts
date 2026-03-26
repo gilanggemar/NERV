@@ -203,6 +203,9 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
                 console.error('createEvent API error:', res.status, errBody);
                 throw new Error(errBody.details || errBody.error || 'Failed to create');
             }
+            
+            const createdData = await res.json();
+            const createdId = createdData?.id || event.id;
 
             // Sync with OpenClaw Cron backend ONLY for single-agent tasks
             const gw = getGateway();
@@ -221,9 +224,9 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
                     : `Scheduled Task: ${event.title}`;
 
                 await gw.request('cron.add', {
-                    name: event.id || 'nerv-scheduled-task',
-                    sessionTarget: event.agentId,
-                    payload: { message: prompt },
+                    name: createdId || 'nerv-scheduled-task',
+                    sessionTarget: `agent:${event.agentId}:cron-${createdId || Date.now()}`,
+                    payload: { kind: 'agentTurn', message: prompt },
                     schedule: { cron: cronExpr }
                 }).then(cronRes => {
                     console.log('[OpenClaw Scheduler] Transmitted cron job:', cronRes);
@@ -262,6 +265,16 @@ export const useSchedulerStore = create<SchedulerState>((set, get) => ({
 
     deleteEvent: async (id) => {
         try {
+            // Unsync from OpenClaw Backend if present
+            const gw = getGateway();
+            if (gw.isConnected) {
+                await gw.request('cron.remove', { name: id }).then(() => {
+                    console.log('[OpenClaw Scheduler] Removed cron job:', id);
+                }).catch(err => {
+                    console.warn('[OpenClaw Scheduler] Ignored cron removal error (may not exist):', err?.message || err);
+                });
+            }
+
             const res = await fetch(`/api/scheduler/events/${id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Failed to delete');
             const { viewStartDate, viewRangeWeeks, fetchEvents } = get();

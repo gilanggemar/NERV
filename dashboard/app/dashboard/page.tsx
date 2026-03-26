@@ -5,12 +5,21 @@ import dynamic from 'next/dynamic';
 import { useCommandCenter } from '@/hooks/useCommandCenter';
 import { useAgentBackground, prefetchAgentBackground } from '@/hooks/useAgentBackground';
 import { useAgentDynamicColors } from '@/hooks/useImageDominantColor';
-import { AgentShowcase } from '@/components/command-center/AgentShowcase';
-import { AgentCarousel } from '@/components/command-center/AgentCarousel';
 import { AnimatePresence, motion } from 'framer-motion';
 import { prefetchAgentHero } from '@/hooks/useAgentHeroGallery';
 import { prefetchAgentAvatar } from '@/hooks/useAgentAvatar';
 import { useEffect } from 'react';
+
+const AgentShowcase = dynamic(
+    () => import('@/components/command-center/AgentShowcase').then(mod => mod.AgentShowcase),
+    { ssr: false }
+);
+
+const AgentCarousel = dynamic(
+    () => import('@/components/command-center/AgentCarousel').then(mod => mod.AgentCarousel),
+    { ssr: false }
+);
+
 
 
 const AtmosphereLayer = dynamic(
@@ -89,8 +98,8 @@ export default function OverviewPage() {
                     <motion.div
                         key={heroUri}
                         className="absolute inset-0 z-[5] pointer-events-none"
-                        initial={{ opacity: 0, scale: 1.03 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                     >

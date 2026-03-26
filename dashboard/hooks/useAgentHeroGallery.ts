@@ -62,8 +62,11 @@ export function useAgentHeroGallery(agentId: string) {
     useEffect(() => {
         if (galleryCache[agentId]) {
             setState(galleryCache[agentId]);
+        } else {
+            // Immediately clear so the old agent's hero doesn't linger
+            setState({ images: [], activeIndex: 0 });
+            fetchImages();
         }
-        fetchImages();
     }, [agentId, fetchImages]);
 
     const activeImageObj = state.images.length > 0
