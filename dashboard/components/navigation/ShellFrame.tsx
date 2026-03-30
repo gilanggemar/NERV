@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useLayoutStore } from "@/store/useLayoutStore";
-import { useNavigationStore } from "@/store/useNavigationStore";
 
 /**
  * ShellFrame — Viewport-fixed SVG border.
  *
- * Top: inverted U-notch for rail (dynamic width) + U-notch at top-right for avatar.
+ * Top: U-notch at top-right for avatar.
  * Bottom: U-notch for dock.
- * Solid fill mask outside the frame.
+ * The top-center rail notch has been removed — submenu now blooms from the dock.
  */
 export function ShellFrame({ children }: { children: React.ReactNode }) {
     const [vp, setVp] = useState({ w: 0, h: 0 });
@@ -35,69 +34,29 @@ export function ShellFrame({ children }: { children: React.ReactNode }) {
     const isDockExpanded = useLayoutStore((s) => s.isBottomDockExpanded);
     const dockW = isDockExpanded ? 196 : 64;
     const dockH = isDockExpanded ? 52 : 18;
-    const dockCr = isDockExpanded ? 18 : 9; // Dynamically calculated to prevent backwards lines
+    const dockCr = isDockExpanded ? 18 : 9;
     const cx = vw / 2;
     const dockLeft = cx - dockW / 2;
     const dockRight = cx + dockW / 2;
     const dockTop = bottom - dockH;
 
-    // ─── Top rail notch (inverted U, identical matching width to dock) ───
-    const isRailExpanded = useLayoutStore((s) => s.isTopRailExpanded);
-    const activeGroup = useNavigationStore((s) => s.activeGroup);
-
-    // Map the active group to a specific width
-    const getRailWidth = () => {
-        switch (activeGroup) {
-            case "PRIMARY": return 242; // 6 icons
-            case "OPERATIONS": return 166; // 4 icons
-            case "INTELLIGENCE": return 166; // 4 icons
-            case "SETTINGS": return 64; // 1 icon (collapses into tab)
-            default: return 242;
-        }
-    };
-
-    // When expanded: dynamic symmetrical width. When collapsed: small tab.
-    const railW = isRailExpanded ? getRailWidth() : 64;
-    const railH = isRailExpanded ? 48 : 18;
-    const railCr = isRailExpanded ? 12 : 9; // Ensures mathematically perfect tangency
-    const railLeft = cx - railW / 2;
-    const railRight = cx + railW / 2;
-    const railBottom = top + railH;
-
     // ─── Avatar notch (U-shape merging into right edge) ───
     const isAvExpanded = useLayoutStore((s) => s.isTopRightExpanded);
-    // Avatar letter sits at approx center (vw-38, 28)
-    // Notch: left wall at ~vw-58, bottom at ~50px from top, right wall IS the frame right edge
-    const avNotchLeft = vw - 61; // Reduced width by 5px
+    const avNotchLeft = vw - 61;
     const avNotchBottom = top + (isAvExpanded ? 42 : 18);
-    const avCr = isAvExpanded ? 18 : 9; // Smoother curve when expanded, tangency when collapsed
+    const avCr = isAvExpanded ? 18 : 9;
 
     // ─── Build SVG path (clockwise) ───
     const framePath = vw > 0 ? [
         // ═══ TOP-LEFT CORNER ═══
         `M ${left + r} ${top}`,
 
-        // ═══ TOP EDGE → RAIL NOTCH ═══
-        `L ${railLeft - railCr} ${top}`,
-        `Q ${railLeft} ${top} ${railLeft} ${top + railCr}`,
-        `L ${railLeft} ${railBottom - railCr}`,
-        `Q ${railLeft} ${railBottom} ${railLeft + railCr} ${railBottom}`,
-        `L ${railRight - railCr} ${railBottom}`,
-        `Q ${railRight} ${railBottom} ${railRight} ${railBottom - railCr}`,
-        `L ${railRight} ${top + railCr}`,
-        `Q ${railRight} ${top} ${railRight + railCr} ${top}`,
-
-        // ═══ TOP EDGE → AVATAR NOTCH ═══
+        // ═══ TOP EDGE → straight to AVATAR NOTCH ═══
         `L ${avNotchLeft - avCr} ${top}`,
-        // Corner: curve DOWN
         `Q ${avNotchLeft} ${top} ${avNotchLeft} ${top + avCr}`,
-        // Left wall: DOWN
         `L ${avNotchLeft} ${avNotchBottom - avCr}`,
-        // Corner: curve RIGHT
         `Q ${avNotchLeft} ${avNotchBottom} ${avNotchLeft + avCr} ${avNotchBottom}`,
-        // Floor: RIGHT to the right frame edge MINUS the corner radius
         `L ${right - avCr} ${avNotchBottom}`,
-        // Corner: curve UP to meet the right edge
         `Q ${right} ${avNotchBottom} ${right} ${avNotchBottom + avCr}`,
 
         // ═══ RIGHT EDGE ═══
@@ -155,6 +114,42 @@ export function ShellFrame({ children }: { children: React.ReactNode }) {
             )}
             <div className="nerv-shell-frame__content">
                 {children}
+                {/* Radial blur overlay — wraps the dock notch */}
+                {vw > 0 && (
+                <div
+                    aria-hidden="true"
+                    style={{
+                        position: 'sticky',
+                        bottom: 0,
+                        left: 0,
+                        width: '100%',
+                        height: dockH * 7,
+                        marginTop: -(dockH * 7),
+                        pointerEvents: 'none',
+                        zIndex: 5,
+                        opacity: isDockExpanded ? 1 : 0,
+                        transition: 'opacity 0.35s ease',
+                        backdropFilter: 'blur(24px)',
+                        WebkitBackdropFilter: 'blur(24px)',
+                        background: 'rgba(0,0,0,1)',
+                        WebkitMaskImage: `radial-gradient(ellipse ${dockW * 2}px ${dockH * 4}px at 50% 100%, black 0%, black 10%, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.03) 85%, transparent 100%)`,
+                        maskImage: `radial-gradient(ellipse ${dockW * 2}px ${dockH * 4}px at 50% 100%, black 0%, black 10%, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0.65) 30%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0.1) 70%, rgba(0,0,0,0.03) 85%, transparent 100%)`,
+                        overflow: 'hidden',
+                    }}
+                >
+                    {/* Dark grain noise with radial falloff */}
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.15 0 0 0 0 0.15 0 0 0 0 0.15 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'repeat',
+                        opacity: 0.5,
+                        mixBlendMode: 'multiply' as React.CSSProperties['mixBlendMode'],
+                        WebkitMaskImage: `radial-gradient(ellipse ${dockW * 1.8}px ${dockH * 3.5}px at 50% 100%, black 0%, black 10%, rgba(0,0,0,0.5) 35%, rgba(0,0,0,0.15) 60%, transparent 100%)`,
+                        maskImage: `radial-gradient(ellipse ${dockW * 1.8}px ${dockH * 3.5}px at 50% 100%, black 0%, black 10%, rgba(0,0,0,0.5) 35%, rgba(0,0,0,0.15) 60%, transparent 100%)`,
+                    }} />
+                </div>
+                )}
             </div>
         </div>
     );

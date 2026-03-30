@@ -114,7 +114,7 @@ interface MessageRendererProps {
 
 export const MessageRenderer = React.memo(function MessageRenderer({ content }: MessageRendererProps) {
     return (
-        <div className="message-content w-full min-w-0 break-words">
+        <div className="message-content w-full min-w-0 break-words font-normal">
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeHighlight, rehypeSanitize]}
@@ -147,7 +147,7 @@ export const MessageRenderer = React.memo(function MessageRenderer({ content }: 
 
                     // Paragraphs
                     p: ({ children }) => (
-                        <p className="my-1 first:mt-0 last:mb-0" style={{ lineHeight: '1.45' }}>{children}</p>
+                        <p className="mb-3 last:mb-0 leading-snug">{children}</p>
                     ),
 
                     // Links
@@ -168,17 +168,17 @@ export const MessageRenderer = React.memo(function MessageRenderer({ content }: 
 
                     // Unordered lists
                     ul: ({ children }) => (
-                        <ul className="my-1.5 ml-4 list-disc space-y-0 marker:text-muted-foreground/80">{children}</ul>
+                        <ul className="mb-3 ml-6 list-disc space-y-0.5 marker:text-muted-foreground/80 last:mb-0">{children}</ul>
                     ),
 
                     // Ordered lists
                     ol: ({ children }) => (
-                        <ol className="my-1.5 ml-4 list-decimal space-y-0 marker:text-muted-foreground/80">{children}</ol>
+                        <ol className="mb-3 ml-6 list-decimal space-y-0.5 marker:text-muted-foreground/80 last:mb-0">{children}</ol>
                     ),
 
                     // List items
                     li: ({ children }) => (
-                        <li className="leading-snug my-0.5">{children}</li>
+                        <li className="leading-snug">{children}</li>
                     ),
 
                     // Horizontal rules

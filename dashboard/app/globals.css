@@ -1364,6 +1364,9 @@ time,
   position: relative;
 }
 
+/* ─── Dock Blur Backdrop ─── */
+
+
 /* ─── Bottom Dock: Sits inside the notch at the bottom ─── */
 .nerv-bottom-dock {
   display: flex;
@@ -1400,14 +1403,14 @@ time,
 }
 
 .nerv-dock-btn:hover {
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.08);
+  color: #c47a3a;
+  background: transparent;
   transform: scale(1.08);
 }
 
 :root:not(.dark) .nerv-dock-btn:hover {
   color: rgba(26, 20, 18, 0.85);
-  background: rgba(0, 0, 0, 0.06);
+  background: transparent;
 }
 
 .nerv-dock-btn--active {
@@ -1419,6 +1422,125 @@ time,
 .nerv-dock-btn--active:hover {
   background: transparent;
   transform: scale(1.08);
+}
+
+/* ─── Dock Bloom Rail ─── */
+
+.nerv-dock-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.nerv-dock-anchor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.nerv-bloom-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.nerv-bloom-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #000000;
+  background: var(--accent-base);
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.nerv-bloom-items {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 16px;
+  background: oklch(0.12 0.005 0 / 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid oklch(1 0 0 / 0.08);
+  box-shadow:
+    0 6px 24px oklch(0 0 0 / 0.35),
+    0 1px 4px oklch(0 0 0 / 0.2),
+    inset 0 1px 0 oklch(1 0 0 / 0.05);
+  white-space: nowrap;
+}
+
+:root:not(.dark) .nerv-bloom-items {
+  background: oklch(0.98 0.005 0 / 0.88);
+  border: 1px solid oklch(0 0 0 / 0.08);
+  box-shadow:
+    0 6px 24px oklch(0 0 0 / 0.1),
+    0 1px 4px oklch(0 0 0 / 0.06),
+    inset 0 1px 0 oklch(1 0 0 / 0.6);
+}
+
+.nerv-bloom-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 6px;
+  border-radius: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 120ms ease;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  min-width: 52px;
+}
+
+:root:not(.dark) .nerv-bloom-tile {
+  color: rgba(26, 20, 18, 0.4);
+}
+
+.nerv-bloom-tile:hover {
+  color: #c47a3a;
+  background: color-mix(in oklch, var(--accent-base) 6%, transparent);
+}
+
+:root:not(.dark) .nerv-bloom-tile:hover {
+  color: #b06828;
+  background: transparent;
+}
+
+.nerv-bloom-tile--active {
+  color: var(--accent-base) !important;
+  background: color-mix(in oklch, var(--accent-base) 10%, transparent);
+}
+
+.nerv-bloom-tile--active:hover {
+  background: color-mix(in oklch, var(--accent-base) 10%, transparent);
+}
+
+.nerv-bloom-tile__icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nerv-bloom-tile__label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.nerv-dock-btn--blooming {
+  color: var(--accent-base) !important;
+  filter: drop-shadow(0 0 6px color-mix(in oklch, var(--accent-base) 40%, transparent));
 }
 
 /* ─── Responsive Adjustments ─── */

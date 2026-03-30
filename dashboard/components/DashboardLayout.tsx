@@ -1,28 +1,38 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClientShell } from "@/components/ClientShell";
 import { TopRightUserMenu } from "@/components/navigation/TopRightUserMenu";
-import { TopRail } from "@/components/navigation/TopRail";
 import { ShellFrame } from "@/components/navigation/ShellFrame";
 import { BottomDock } from "@/components/navigation/BottomDock";
 import { PageLoadingIndicator } from "@/components/PageLoadingIndicator";
 import { useTaskStore } from "@/lib/useTaskStore";
+import { useNavigationStore } from "@/store/useNavigationStore";
+
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const fetchTasks = useTaskStore((s) => s.fetchTasks);
     const hasFetched = useTaskStore((s) => s.hasFetched);
+    const syncFromPath = useNavigationStore((s) => s.syncFromPath);
+    const pathname = usePathname();
+
 
     useEffect(() => {
         if (!hasFetched) fetchTasks();
     }, [hasFetched, fetchTasks]);
+
+    // Sync navigation state from URL (previously in TopRail)
+    useEffect(() => {
+        if (pathname) syncFromPath(pathname);
+    }, [pathname, syncFromPath]);
+
     return (
         <TooltipProvider>
             <div className="nerv-app-shell">
                 <TopRightUserMenu />
                 <ShellFrame>
-                    <TopRail />
                     <main className="nerv-content-viewport">
                         <ClientShell>
                             <Suspense fallback={
@@ -41,3 +51,4 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </TooltipProvider>
     );
 }
+

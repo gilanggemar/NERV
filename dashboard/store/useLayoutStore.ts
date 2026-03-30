@@ -12,7 +12,7 @@ interface LayoutState {
 }
 
 export const useLayoutStore = create<LayoutState>((set) => ({
-    topRailWidth: 230, // Default starting width
+    topRailWidth: 230,
     setTopRailWidth: (width) => set({ topRailWidth: width }),
     isTopRailExpanded: false,
     setTopRailExpanded: (expanded) => set({ isTopRailExpanded: expanded }),
